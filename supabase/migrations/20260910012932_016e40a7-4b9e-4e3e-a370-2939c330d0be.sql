@@ -1,0 +1,12 @@
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.apply_points() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.is_admin() FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.get_leaderboard() FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.review_submission(uuid, boolean, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.adjust_points(uuid, integer, text) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_leaderboard() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.review_submission(uuid, boolean, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adjust_points(uuid, integer, text) TO authenticated;
