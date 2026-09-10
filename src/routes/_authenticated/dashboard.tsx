@@ -104,7 +104,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg">
+      <section className="animate-rise-in rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg">
         <p className="text-sm opacity-80">Olá, {profile?.name?.split(" ")[0] ?? "participante"} 👋</p>
         <h1 className="mt-1 text-2xl font-bold">{settings?.name ?? "CJAS Belém Game"}</h1>
         <div className="mt-4 flex gap-6">
@@ -176,7 +176,7 @@ function ChallengeCard({
   const status = submissionLabel(submission?.status);
   return (
     <Link to="/desafio/$id" params={{ id: challenge.id }}>
-      <Card className="transition-shadow hover:shadow-md">
+      <Card className="animate-rise-in hover-lift">
         <CardContent className="flex items-center gap-3 p-4">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">

@@ -74,7 +74,7 @@ function Landing() {
 
         <div className="mt-12 grid gap-3 sm:grid-cols-2">
           {highlights.map((h) => (
-            <div key={h.title} className="surface p-5">
+            <div key={h.title} className="surface animate-rise-in hover-lift p-5">
               <h.icon className="size-5 text-primary" />
               <h2 className="mt-3 text-sm font-semibold">{h.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{h.text}</p>
