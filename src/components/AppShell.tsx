@@ -7,6 +7,7 @@ import { useIsAdmin, useProfile, useSession } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
 const navItems = [
   { to: "/dashboard", label: "Início", icon: Home },
@@ -49,9 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground font-bold">
-              CJ
-            </span>
+            <img src={logoAsset.url} alt="Aproxime-se de Cristo" className="h-9 w-auto" />
             <span className="hidden text-sm font-semibold leading-tight sm:block">
               CJAS Belém
               <span className="block text-xs font-normal text-muted-foreground">Game</span>
