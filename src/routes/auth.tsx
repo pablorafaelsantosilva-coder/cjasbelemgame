@@ -42,6 +42,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [recovering, setRecovering] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
 
   useEffect(() => {
     if (session) navigate({ to: "/dashboard", replace: true });
@@ -73,12 +74,16 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
+    setCelebrating(true);
     if (!data.session) {
-      toast.success("Conta criada! Confirme o e-mail para entrar.");
-      setTab("login");
+      window.setTimeout(() => {
+        setCelebrating(false);
+        toast.success("Conta criada! Confirme o e-mail para entrar.");
+        setTab("login");
+      }, 2200);
       return;
     }
-    navigate({ to: "/dashboard", replace: true });
+    window.setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2200);
   }
 
   async function handleGoogle() {
@@ -191,10 +196,12 @@ function AuthPage() {
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogle}>
+          <Button variant="outline" className="w-full gap-2" onClick={handleGoogle}>
+            <GoogleIcon />
             Continuar com Google
           </Button>
-          <Button variant="outline" className="mt-2 w-full" onClick={handleApple}>
+          <Button variant="outline" className="mt-2 w-full gap-2" onClick={handleApple}>
+            <AppleIcon />
             Continuar com Apple
           </Button>
         </div>
