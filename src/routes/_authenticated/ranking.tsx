@@ -40,7 +40,13 @@ function RankingPage() {
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
       <div className="space-y-2">
         {rows.map((r) => (
-          <Card key={r.id} className={cn(r.id === userId && "border-primary bg-primary/5")}>
+          <Card
+            key={r.id}
+            className={cn(
+              "animate-rise-in hover-lift",
+              r.id === userId && "animate-ember-pulse border-primary bg-primary/5",
+            )}
+          >
             <CardContent className="flex items-center gap-3 p-3">
               <span className="w-8 text-center text-lg font-bold">
                 {medals[r.rank_position - 1] ?? r.rank_position}
