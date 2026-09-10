@@ -190,6 +190,9 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={handleGoogle}>
             Continuar com Google
           </Button>
+          <Button variant="outline" className="mt-2 w-full" onClick={handleApple}>
+            Continuar com Apple
+          </Button>
         </div>
       </div>
     </div>
