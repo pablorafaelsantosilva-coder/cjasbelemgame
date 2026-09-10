@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { Camera, Trophy, Zap, ShieldCheck } from "lucide-react";
 import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import bgAsset from "@/assets/cjas-tema.png.asset.json";
+import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,11 +43,17 @@ function Landing() {
   }, [loading, session, navigate]);
 
   return (
-    <div className="min-h-screen sand-gradient">
-      <div className="mx-auto flex max-w-3xl flex-col px-5 py-14">
+    <div className="relative min-h-screen bg-cover bg-center" style={{ backgroundImage: `url(${bgAsset.url})` }}>
+      <div className="absolute inset-0 bg-background/88" />
+      <div className="relative mx-auto flex max-w-3xl flex-col px-5 py-14">
         <span className="w-fit rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
           4 dias · desafios · ranking
         </span>
+        <img
+          src={logoAsset.url}
+          alt="Aproxime-se de Cristo — Ele é o caminho"
+          className="mt-6 w-64 max-w-full sm:w-80"
+        />
         <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
           CJAS Belém <span className="text-primary">Game</span>
         </h1>
