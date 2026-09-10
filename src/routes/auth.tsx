@@ -88,6 +88,15 @@ function AuthPage() {
     navigate({ to: "/dashboard", replace: true });
   }
 
+  async function handleApple() {
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) { toast.error("Não foi possível entrar com a Apple."); return; }
+    if (result.redirected) return;
+    navigate({ to: "/dashboard", replace: true });
+  }
+
   async function handleRecover() {
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) { toast.error("Informe seu e-mail para recuperar a senha."); return; }
@@ -180,6 +189,9 @@ function AuthPage() {
           </div>
           <Button variant="outline" className="w-full" onClick={handleGoogle}>
             Continuar com Google
+          </Button>
+          <Button variant="outline" className="mt-2 w-full" onClick={handleApple}>
+            Continuar com Apple
           </Button>
         </div>
       </div>
