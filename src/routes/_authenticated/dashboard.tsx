@@ -169,7 +169,7 @@ function ChallengeCard({
   now,
 }: {
   challenge: Challenge;
-  submission?: Submission;
+  submission?: Submission | undefined;
   now: number;
 }) {
   const state = liveState(challenge, new Date(now));
