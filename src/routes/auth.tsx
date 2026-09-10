@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,21 +47,21 @@ function AuthPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const parsed = emailSchema.safeParse(email);
-    if (!parsed.success) return toast.error(parsed.error.issues[0]!.message);
+    if (!parsed.success) { toast.error(parsed.error.issues[0]!.message); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: parsed.data, password });
     setLoading(false);
-    if (error) return toast.error("Não foi possível entrar. Verifique e-mail e senha.");
+    if (error) { toast.error("Não foi possível entrar. Verifique e-mail e senha."); return; }
     navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     const parsedEmail = emailSchema.safeParse(email);
-    if (!parsedEmail.success) return toast.error(parsedEmail.error.issues[0]!.message);
+    if (!parsedEmail.success) { toast.error(parsedEmail.error.issues[0]!.message); return; }
     const parsedPass = passSchema.safeParse(password);
-    if (!parsedPass.success) return toast.error(parsedPass.error.issues[0]!.message);
-    if (name.trim().length < 2) return toast.error("Informe seu nome completo.");
+    if (!parsedPass.success) { toast.error(parsedPass.error.issues[0]!.message); return; }
+    if (name.trim().length < 2) { toast.error("Informe seu nome completo."); return; }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: parsedEmail.data,
@@ -70,7 +69,7 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { name: name.trim() } },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     if (!data.session) {
       toast.success("Conta criada! Confirme o e-mail para entrar.");
       setTab("login");
@@ -80,21 +79,22 @@ function AuthPage() {
   }
 
   async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) return toast.error("Não foi possível entrar com o Google.");
-    if (result.redirected) return;
-    navigate({ to: "/dashboard", replace: true });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) { toast.error("Não foi possível entrar com o Google."); return; }
   }
 
   async function handleRecover() {
     const parsed = emailSchema.safeParse(email);
-    if (!parsed.success) return toast.error("Informe seu e-mail para recuperar a senha.");
+    if (!parsed.success) { toast.error("Informe seu e-mail para recuperar a senha."); return; }
     setRecovering(true);
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setRecovering(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Enviamos um link de recuperação para o seu e-mail.");
   }
 
