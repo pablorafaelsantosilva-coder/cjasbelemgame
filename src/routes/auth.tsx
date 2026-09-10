@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SparkCelebration } from "@/components/SparkCelebration";
 import bgAsset from "@/assets/cjas-tema.png.asset.json";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
@@ -32,6 +33,25 @@ export const Route = createFileRoute("/auth")({
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);
 const passSchema = z.string().min(6, "A senha precisa de ao menos 6 caracteres").max(72);
 
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="size-4">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9.1h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.6z" />
+      <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.8-6.1z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.4 0-11.7-3.7-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+    </svg>
+  );
+}
+
+function AppleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-current">
+      <path d="M16.36 12.78c.02-2.13 1.74-3.15 1.82-3.2-1-1.46-2.54-1.66-3.09-1.68-1.31-.13-2.57.77-3.24.77-.67 0-1.7-.75-2.8-.73-1.44.02-2.77.84-3.51 2.13-1.5 2.6-.38 6.44 1.07 8.55.71 1.03 1.55 2.19 2.66 2.15 1.07-.04 1.47-.69 2.77-.69 1.29 0 1.66.69 2.79.67 1.15-.02 1.88-1.05 2.58-2.09.81-1.2 1.15-2.36 1.17-2.42-.03-.01-2.24-.86-2.22-3.46zM14.3 5.6c.59-.72.99-1.71.88-2.7-.85.03-1.88.57-2.49 1.28-.55.63-1.03 1.64-.9 2.61.95.07 1.92-.48 2.51-1.19z" />
+    </svg>
+  );
+}
+
 function AuthPage() {
   const { mode } = Route.useSearch();
   const { session } = useSession();
@@ -45,8 +65,8 @@ function AuthPage() {
   const [celebrating, setCelebrating] = useState(false);
 
   useEffect(() => {
-    if (session) navigate({ to: "/dashboard", replace: true });
-  }, [session, navigate]);
+    if (session && !celebrating) navigate({ to: "/dashboard", replace: true });
+  }, [session, navigate, celebrating]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -122,6 +142,7 @@ function AuthPage() {
       style={{ backgroundImage: `url(${bgAsset.url})` }}
     >
       <div className="absolute inset-0 bg-background/85 backdrop-blur-[2px]" />
+      {celebrating && <SparkCelebration label="Conta criada!" />}
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
           <img src={logoAsset.url} alt="Aproxime-se de Cristo — Ele é o caminho" className="mx-auto w-52" />
