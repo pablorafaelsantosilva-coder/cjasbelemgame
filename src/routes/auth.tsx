@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import bgAsset from "@/assets/cjas-tema.png.asset.json";
+import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
 
@@ -110,12 +112,14 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center sand-gradient px-4 py-10">
-      <div className="w-full max-w-sm">
+    <div
+      className="relative grid min-h-screen place-items-center bg-cover bg-center px-4 py-10"
+      style={{ backgroundImage: `url(${bgAsset.url})` }}
+    >
+      <div className="absolute inset-0 bg-background/85 backdrop-blur-[2px]" />
+      <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
-          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground">
-            CJ
-          </span>
+          <img src={logoAsset.url} alt="Aproxime-se de Cristo — Ele é o caminho" className="mx-auto w-52" />
           <h1 className="mt-3 text-2xl font-bold">CJAS Belém Game</h1>
           <p className="text-sm text-muted-foreground">Entre para ver seus desafios</p>
         </div>
