@@ -13,7 +13,7 @@ const tabs = [
   { to: "/admin/participantes", label: "Participantes" },
   { to: "/admin/configuracoes", label: "Configurações" },
   { to: "/admin/auditoria", label: "Auditoria" },
-] as const;
+] as { to: "/admin" | "/admin/validacoes" | "/admin/desafios" | "/admin/participantes" | "/admin/configuracoes" | "/admin/auditoria"; label: string; exact?: boolean }[];
 
 function AdminLayout() {
   const { userId } = useSession();

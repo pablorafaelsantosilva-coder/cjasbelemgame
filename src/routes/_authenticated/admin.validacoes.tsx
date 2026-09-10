@@ -43,12 +43,23 @@ function ValidationsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, challenges(title,points), profiles:user_id(name), submission_files(id,storage_path,file_type)")
+        .select("*, challenges(title,points), submission_files(id,storage_path,file_type)")
         .eq("status", filter)
         .order("submitted_at", { ascending: true })
         .limit(100);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const { data: names = {} } = useQuery({
+    queryKey: ["profile-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id,name");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const p of data ?? []) map[p.id] = p.name;
+      return map;
     },
   });
 
@@ -84,7 +95,7 @@ function ValidationsPage() {
 
       {rows.map((row) => {
         const challenge = row.challenges as { title: string; points: number } | null;
-        const profile = row.profiles as { name: string } | null;
+        const profile = names[row.user_id];
         const files = (row.submission_files ?? []) as { id: string; storage_path: string; file_type: string }[];
         const status = submissionLabel(row.status);
         return (
@@ -99,7 +110,7 @@ function ValidationsPage() {
               <div>
                 <p className="font-semibold">{challenge?.title ?? "Desafio"}</p>
                 <p className="text-sm text-muted-foreground">
-                  {profile?.name ?? "Participante"} · +{challenge?.points ?? 0} pts
+                  {profile ?? "Participante"} · +{challenge?.points ?? 0} pts
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
