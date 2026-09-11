@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Camera, Trophy, Zap, ShieldCheck } from "lucide-react";
 import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import bgAsset from "@/assets/cjas-tema.png.asset.json";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
 export const Route = createFileRoute("/")({

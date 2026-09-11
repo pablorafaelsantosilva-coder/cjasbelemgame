@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
-import bgAsset from "@/assets/cjas-tema.png.asset.json";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 
 const navItems = [
   { to: "/dashboard", label: "Início", icon: Home },

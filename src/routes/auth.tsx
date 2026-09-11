@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SparkCelebration } from "@/components/SparkCelebration";
-import bgAsset from "@/assets/cjas-tema.png.asset.json";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
