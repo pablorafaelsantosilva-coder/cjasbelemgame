@@ -38,12 +38,12 @@ function RankingPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Ranking</h1>
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      <div className="space-y-2">
+      <div className="stagger-children space-y-2">
         {rows.map((r) => (
           <Card
             key={r.id}
             className={cn(
-              "animate-rise-in hover-lift",
+              "hover-lift press-in",
               r.id === userId && "animate-ember-pulse border-primary bg-primary/5",
             )}
           >
@@ -56,7 +56,7 @@ function RankingPage() {
                 <AvatarFallback>{r.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1 truncate font-medium">{r.name}</span>
-              <span className="font-bold">{r.total_points}</span>
+              <span className={cn("font-bold", r.rank_position <= 3 && "shine-text")}>{r.total_points}</span>
             </CardContent>
           </Card>
         ))}
