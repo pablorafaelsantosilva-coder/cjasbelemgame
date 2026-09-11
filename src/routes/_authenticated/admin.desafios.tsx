@@ -119,6 +119,20 @@ function AdminChallenges() {
     onError: () => toast.error("Não foi possível atualizar o desafio."),
   });
 
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("delete_challenge", { _challenge_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Atividade excluída.");
+      queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    },
+    onError: () => toast.error("Não foi possível excluir a atividade."),
+  });
+
   return (
     <div className="space-y-4">
       <Button onClick={() => setOpen((o) => !o)}>{open ? "Fechar formulário" : "Novo desafio"}</Button>
