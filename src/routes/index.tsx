@@ -43,8 +43,8 @@ function Landing() {
   }, [loading, session, navigate]);
 
   return (
-    <div className="relative min-h-screen bg-cover bg-center" style={{ backgroundImage: `url(${bgAsset.url})` }}>
-      <div className="absolute inset-0 bg-background/88" />
+    <div className="relative min-h-screen bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${bgAsset.url})` }}>
+      <div className="absolute inset-0 bg-gradient-to-b from-background/65 via-background/85 to-background" />
       <div className="relative mx-auto flex max-w-3xl flex-col px-5 py-14">
         <span className="w-fit rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
           4 dias · desafios · ranking
