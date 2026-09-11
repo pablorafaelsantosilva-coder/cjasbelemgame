@@ -9,6 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({
@@ -35,6 +46,7 @@ function AdminSettings() {
     finished: false,
   });
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["event-settings"],
@@ -79,7 +91,21 @@ function AdminSettings() {
     queryClient.invalidateQueries({ queryKey: ["event-settings"] });
   }
 
+  async function resetRanking() {
+    setResetting(true);
+    const { error } = await supabase.rpc("reset_leaderboard");
+    setResetting(false);
+    if (error) {
+      toast.error("Não foi possível zerar o ranking.");
+      return;
+    }
+    toast.success("Ranking zerado.");
+    queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  }
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -111,5 +137,36 @@ function AdminSettings() {
         </Button>
       </CardContent>
     </Card>
+
+    <Card className="border-destructive/40">
+      <CardContent className="space-y-3 p-4">
+        <div>
+          <p className="font-semibold text-destructive">Zerar ranking</p>
+          <p className="text-sm text-muted-foreground">
+            Apaga todo o histórico de pontos e coloca todos os participantes em zero. As atividades continuam no lugar.
+          </p>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={resetting}>
+              {resetting ? "Zerando…" : "Zerar ranking"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Zerar a pontuação de todos?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Todos os pontos e o histórico de pontuação serão apagados. Não dá para desfazer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Voltar</AlertDialogCancel>
+              <AlertDialogAction onClick={resetRanking}>Zerar tudo</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+    </div>
   );
 }

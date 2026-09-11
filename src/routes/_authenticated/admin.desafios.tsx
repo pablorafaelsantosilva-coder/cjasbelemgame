@@ -11,6 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatDateTime, liveState, stateClass, stateLabel, type Challenge } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +117,20 @@ function AdminChallenges() {
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
     },
     onError: () => toast.error("Não foi possível atualizar o desafio."),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("delete_challenge", { _challenge_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Atividade excluída.");
+      queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    },
+    onError: () => toast.error("Não foi possível excluir a atividade."),
   });
 
   return (
@@ -245,12 +270,32 @@ function AdminChallenges() {
                   {c.status !== "cancelado" && (
                     <Button
                       size="sm"
-                      variant="destructive"
+                      variant="outline"
                       onClick={() => setStatus.mutate({ id: c.id, status: "cancelado" })}
                     >
                       Cancelar
                     </Button>
                   )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="destructive" disabled={remove.isPending}>
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir "{c.title}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          A atividade, os envios enviados por ela e os pontos já concedidos serão apagados. Não dá para
+                          desfazer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => remove.mutate(c.id)}>Excluir atividade</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
