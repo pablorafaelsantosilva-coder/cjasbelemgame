@@ -109,7 +109,7 @@ function Dashboard() {
         <h1 className="mt-1 text-2xl font-bold">{settings?.name ?? "CJAS Belém Game"}</h1>
         <div className="mt-4 flex gap-6">
           <div>
-            <p className="text-3xl font-extrabold">{profile?.total_points ?? 0}</p>
+            <p className="shine-text text-3xl font-extrabold">{profile?.total_points ?? 0}</p>
             <p className="text-xs opacity-80">pontos</p>
           </div>
           <div>
@@ -158,7 +158,11 @@ function Section({ title, empty, children }: { title: string; empty: string; chi
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
-      {children.length === 0 ? <p className="text-sm text-muted-foreground">{empty}</p> : children}
+      {children.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <div className="stagger-children space-y-3">{children}</div>
+      )}
     </section>
   );
 }
@@ -176,7 +180,7 @@ function ChallengeCard({
   const status = submissionLabel(submission?.status);
   return (
     <Link to="/desafio/$id" params={{ id: challenge.id }}>
-      <Card className="animate-rise-in hover-lift">
+      <Card className="hover-lift press-in">
         <CardContent className="flex items-center gap-3 p-4">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
