@@ -365,6 +365,7 @@ export type Database = {
         Args: { _description: string; _points: number; _user_id: string }
         Returns: undefined
       }
+      delete_challenge: { Args: { _challenge_id: string }; Returns: undefined }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -383,6 +384,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      reset_leaderboard: { Args: never; Returns: undefined }
       review_submission: {
         Args: { _approve: boolean; _reason?: string; _submission_id: string }
         Returns: undefined
