@@ -197,7 +197,12 @@ function ChallengeCard({
               </span>
             </div>
             <p className="truncate font-semibold">{challenge.title}</p>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p
+              className={cn(
+                "flex items-center gap-1.5 text-xs text-muted-foreground",
+                state === "ativo" && challenge.type === "relampago" && "animate-urgent font-medium text-warning",
+              )}
+            >
               <Clock className="size-3.5" />
               {state === "ativo"
                 ? `Encerra em ${countdown(challenge.ends_at, now)}`
