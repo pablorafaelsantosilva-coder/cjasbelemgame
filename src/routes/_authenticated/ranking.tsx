@@ -5,6 +5,7 @@ import { useSession } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/ranking")({
   head: () => ({
@@ -36,7 +37,18 @@ function RankingPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Ranking</h1>
+      <section className="animate-rise-in relative isolate min-h-32 overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
+        <img
+          src={bgAsset.url}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 size-full object-cover object-center"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/95 via-primary/75 to-background/55" />
+        <p className="text-xs font-semibold uppercase text-primary-foreground/75">CJAS Belém Game</p>
+        <h1 className="mt-2 text-2xl font-bold">Ranking</h1>
+        <p className="mt-1 max-w-md text-sm text-primary-foreground/80">Acompanhe a classificação do evento em tempo real.</p>
+      </section>
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
       <div className="stagger-children space-y-2">
         {rows.map((r) => (

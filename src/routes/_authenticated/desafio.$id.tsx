@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MediaPreview } from "@/components/MediaPreview";
 import { cn } from "@/lib/utils";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import {
   countdown,
   formatDateTime,
@@ -151,7 +152,14 @@ function ChallengeDetail() {
         </Link>
       </Button>
 
-      <div className="space-y-2">
+      <section className="animate-rise-in relative isolate overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
+        <img
+          src={bgAsset.url}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 size-full object-cover object-center"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/95 via-primary/80 to-background/65" />
         <div className="flex flex-wrap items-center gap-2">
           {challenge.type === "relampago" && (
             <Badge className="gap-1 bg-warning text-warning-foreground">
@@ -166,15 +174,15 @@ function ChallengeDetail() {
           </span>
         </div>
         <h1 className="text-2xl font-bold">{challenge.title}</h1>
-        <p className="text-sm text-muted-foreground">{challenge.description}</p>
+        <p className="text-sm text-primary-foreground/80">{challenge.description}</p>
         <p className="text-sm">
           <span className="font-semibold">+{challenge.points} pontos</span> · {formatDateTime(challenge.starts_at)} até{" "}
           {formatDateTime(challenge.ends_at)}
         </p>
         {state === "ativo" && (
-          <p className="text-sm font-semibold text-primary">Tempo restante: {countdown(challenge.ends_at, now)}</p>
+          <p className="text-sm font-semibold text-primary-foreground">Tempo restante: {countdown(challenge.ends_at, now)}</p>
         )}
-      </div>
+      </section>
 
       <Card>
         <CardContent className="space-y-2 p-4 text-sm">
