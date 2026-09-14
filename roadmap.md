@@ -5,4 +5,4 @@
 - [x] Melhorar animações essenciais do jogo
 - [x] Aplicar fundo de montanhas em alta resolução
 - [x] Destacar o fundo temático no início, ranking e detalhes dos desafios
-- [ ] Aplicar degradê branco e marrom com montanhas em todas as abas do participante
+- [x] Aplicar degradê branco e marrom com montanhas em todas as abas do participante

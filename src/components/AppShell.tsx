@@ -47,13 +47,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="relative min-h-screen bg-background pb-24">
+    <div className="relative isolate min-h-screen pb-24">
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40"
+        className="pointer-events-none fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${bgAsset.url})` }}
       />
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-background/85 via-background/92 to-background" />
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-r from-primary/50 via-background/80 to-primary/50" />
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-background/35 via-background/55 to-background/90" />
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link to="/dashboard" className="flex items-center gap-2">
