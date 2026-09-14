@@ -7,6 +7,7 @@ import { useProfile, useSession } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import {
   countdown,
   formatDateTime,
@@ -104,7 +105,14 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="animate-rise-in rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg">
+      <section className="animate-rise-in relative isolate overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
+        <img
+          src={bgAsset.url}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 size-full object-cover object-center"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/95 via-primary/80 to-background/65" />
         <p className="text-sm opacity-80">Olá, {profile?.name?.split(" ")[0] ?? "participante"} 👋</p>
         <h1 className="mt-1 text-2xl font-bold">{settings?.name ?? "CJAS Belém Game"}</h1>
         <div className="mt-4 flex gap-6">
