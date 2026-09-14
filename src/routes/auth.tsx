@@ -141,7 +141,8 @@ function AuthPage() {
       className="relative grid min-h-screen place-items-center bg-cover bg-center px-4 py-10"
       style={{ backgroundImage: `url(${bgAsset.url})` }}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/85 to-background backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/55 via-background/75 to-primary/55" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/25 via-background/50 to-background/90 backdrop-blur-[1px]" />
       {celebrating && <SparkCelebration label="Conta criada!" />}
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
