@@ -117,7 +117,9 @@ function Dashboard() {
         <h1 className="mt-1 text-2xl font-bold">{settings?.name ?? "CJAS Belém Game"}</h1>
         <div className="mt-4 flex gap-6">
           <div>
-            <p className="shine-text text-3xl font-extrabold">{profile?.total_points ?? 0}</p>
+            <p className={cn("text-3xl font-extrabold", rank === 1 ? "rgb-points" : "text-primary-foreground")}>
+              {profile?.total_points ?? 0}
+            </p>
             <p className="text-xs opacity-80">pontos</p>
           </div>
           <div>

@@ -93,6 +93,9 @@
   --chart-3: oklch(0.56 0.13 155);
   --chart-4: oklch(0.72 0.15 75);
   --chart-5: oklch(0.55 0.12 245);
+  --rgb-red: oklch(0.64 0.23 25);
+  --rgb-green: oklch(0.7 0.18 145);
+  --rgb-blue: oklch(0.62 0.2 255);
   --sidebar: oklch(0.97 0.01 78);
   --sidebar-foreground: oklch(0.235 0.018 55);
   --sidebar-primary: oklch(0.435 0.06 55);
@@ -135,6 +138,9 @@
   --chart-3: oklch(0.64 0.13 155);
   --chart-4: oklch(0.78 0.14 78);
   --chart-5: oklch(0.66 0.12 245);
+  --rgb-red: oklch(0.7 0.2 25);
+  --rgb-green: oklch(0.76 0.17 145);
+  --rgb-blue: oklch(0.7 0.18 255);
   --sidebar: oklch(0.235 0.016 58);
   --sidebar-foreground: oklch(0.96 0.008 80);
   --sidebar-primary: oklch(0.72 0.06 62);
@@ -369,6 +375,27 @@
   background-clip: text;
   color: transparent;
   animation: gold-sweep 4.5s ease-in-out infinite;
+}
+
+/* RGB reservado exclusivamente à pontuação do primeiro lugar */
+@keyframes rgb-points-flow {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@utility rgb-points {
+  background-image: linear-gradient(
+    90deg,
+    var(--rgb-red),
+    var(--rgb-green),
+    var(--rgb-blue),
+    var(--rgb-red)
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  color: transparent;
+  animation: rgb-points-flow 2.5s linear infinite;
 }
 
 /* Contagem regressiva dos desafios relâmpago */

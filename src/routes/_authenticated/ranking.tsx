@@ -68,7 +68,9 @@ function RankingPage() {
                 <AvatarFallback>{r.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1 truncate font-medium">{r.name}</span>
-              <span className={cn("font-bold", r.rank_position <= 3 && "shine-text")}>{r.total_points}</span>
+              <span className={cn("font-bold", r.rank_position === 1 ? "rgb-points" : "text-primary")}>
+                {r.total_points}
+              </span>
             </CardContent>
           </Card>
         ))}
