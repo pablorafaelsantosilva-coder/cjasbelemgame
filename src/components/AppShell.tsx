@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-background/35 via-background/55 to-background/90" />
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2" aria-label="Ir para o início">
             <img src={logoAsset.url} alt="Aproxime-se de Cristo" className="h-9 w-auto" />
             <span className="hidden text-sm font-semibold leading-tight sm:block">
               CJAS Belém
@@ -98,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="mx-auto w-full max-w-5xl px-4 py-5">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur">
+      <nav aria-label="Navegação principal" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur">
         <div className="mx-auto grid max-w-5xl grid-cols-4">
           {navItems.map((item) => {
             const active = pathname.startsWith(item.to);
