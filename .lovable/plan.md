@@ -9,8 +9,8 @@
 2. Corrigir o fluxo de reenvio: hoje a tela tenta inserir outra comprovação para o mesmo desafio, mas o banco só permite uma por participante. Tratar arquivos, estado e validação de forma consistente, inclusive erros durante o envio.
 3. Fazer o encerramento do evento bloquear novos envios de verdade, inclusive tentativas fora da interface; hoje a opção aparece nas configurações, mas o bloqueio não está imposto no banco.
 4. Revisar as permissões das comprovações e dados do perfil para impedir alterações indevidas de status, dono ou pontos por chamadas diretas, preservando a validação exclusiva da organização.
-5. Reduzir trabalho desnecessário nas telas de desafios e requisições repetidas, sem atrasar ranking, notificações e desafios relâmpago. Ajustar carregamento de mídia secundária sem perda visual relevante.
-6. Corrigir problemas confirmados em navegação, estados de carregamento/erro e acessibilidade que a revisão encontrar, sem redesenhar as telas nem adicionar funcionalidades alheias ao jogo.
+5. Reduzir trabalho desnecessário nas telas de desafios e requisições repetidas, sem atrasar ranking, notificações e desafios relâmpago. Assinar prévias de mídia em lotes e evitar buscar todos os perfis ao abrir as validações.
+6. Validar antes do envio se foram escolhidos os tipos de arquivo exigidos pelo desafio. Corrigir estados de carregamento/erro e acessibilidade confirmados pela revisão, sem redesenhar as telas nem adicionar funcionalidades alheias ao jogo.
 
 ## Verificação
 - Testar cliques no logo, cadastro/acesso, envio e reenvio, validação, encerramento, ranking e notificações em computador e celular.
