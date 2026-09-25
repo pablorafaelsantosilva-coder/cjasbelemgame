@@ -3,6 +3,13 @@ import { useIsAdmin, useSession } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title: "Painel Admin — CJAS Belém Game" },
+      { name: "description", content: "Área administrativa da organização do evento." },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: AdminLayout,
 });
 
@@ -13,7 +20,17 @@ const tabs = [
   { to: "/admin/participantes", label: "Participantes" },
   { to: "/admin/configuracoes", label: "Configurações" },
   { to: "/admin/auditoria", label: "Auditoria" },
-] as { to: "/admin" | "/admin/validacoes" | "/admin/desafios" | "/admin/participantes" | "/admin/configuracoes" | "/admin/auditoria"; label: string; exact?: boolean }[];
+] as {
+  to:
+    | "/admin"
+    | "/admin/validacoes"
+    | "/admin/desafios"
+    | "/admin/participantes"
+    | "/admin/configuracoes"
+    | "/admin/auditoria";
+  label: string;
+  exact?: boolean;
+}[];
 
 function AdminLayout() {
   const { userId } = useSession();
@@ -32,7 +49,7 @@ function AdminLayout() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">Painel da organização</h1>
-      <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1">
+      <nav aria-label="Abas de administração" className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 scrollbar-none">
         {tabs.map((t) => {
           const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
           return (
