@@ -385,6 +385,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       reset_leaderboard: { Args: never; Returns: undefined }
+      resubmit_proof: { Args: { _submission_id: string }; Returns: undefined }
       review_submission: {
         Args: { _approve: boolean; _reason?: string; _submission_id: string }
         Returns: undefined
