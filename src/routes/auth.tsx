@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -146,7 +146,9 @@ function AuthPage() {
       {celebrating && <SparkCelebration label="Conta criada!" />}
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
-          <img src={logoAsset.url} alt="Aproxime-se de Cristo — Ele é o caminho" className="mx-auto w-52" />
+          <Link to="/" aria-label="Voltar à tela inicial" className="inline-block">
+            <img src={logoAsset.url} alt="Aproxime-se de Cristo — Ele é o caminho" className="mx-auto w-52" />
+          </Link>
           <h1 className="mt-3 text-2xl font-bold">CJAS Belém Game</h1>
           <p className="text-sm text-muted-foreground">Entre para ver seus desafios</p>
         </div>

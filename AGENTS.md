@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep submission creation and resubmission validation in database triggers and the participant RPC; this prevents direct client calls from bypassing event closure or manual review.
+- Share a short-lived TanStack Query cache across the app; it reduces redundant requests during navigation without leaving event data stale for long.

@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
-function useNow(intervalMs = 1000) {
+function useNow(intervalMs = 30_000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), intervalMs);
@@ -108,6 +108,7 @@ function Dashboard() {
       <section className="animate-rise-in relative isolate overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
         <img
           src={bgAsset.url}
+          fetchPriority="high"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 -z-20 size-full object-cover object-center"
@@ -215,9 +216,9 @@ function ChallengeCard({
             >
               <Clock className="size-3.5" />
               {state === "ativo"
-                ? `Encerra em ${countdown(challenge.ends_at, now)}`
+                ? <>Encerra em <TimeRemaining at={challenge.ends_at} /></>
                 : state === "agendado"
-                  ? `Abre em ${countdown(challenge.starts_at, now)}`
+                  ? <>Abre em <TimeRemaining at={challenge.starts_at} /></>
                   : formatDateTime(challenge.ends_at)}
               <span className="ml-2 font-semibold text-foreground">+{challenge.points} pts</span>
             </p>
@@ -227,4 +228,9 @@ function ChallengeCard({
       </Card>
     </Link>
   );
+}
+
+function TimeRemaining({ at }: { at: string }) {
+  const now = useNow(1000);
+  return <span>{countdown(at, now)}</span>;
 }

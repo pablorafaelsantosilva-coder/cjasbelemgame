@@ -8,7 +8,7 @@ import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MediaPreview } from "@/components/MediaPreview";
+import { MediaGallery } from "@/components/MediaGallery";
 import { cn } from "@/lib/utils";
 import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import {
@@ -52,16 +52,25 @@ function ChallengeDetail() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
 
-  const { data: challenge } = useQuery({
+  const { data: challenge, isPending: challengePending, isError: challengeError } = useQuery({
     queryKey: ["challenge", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("challenges").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
       return data as Challenge | null;
+    },
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ["event-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("event_settings").select("finished").eq("id", 1).single();
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -82,7 +91,7 @@ function ChallengeDetail() {
     },
   });
 
-  const { data: myFiles = [] } = useQuery({
+  const { data: myFiles = [], isPending: filesPending } = useQuery({
     queryKey: ["submission-files", submission?.id],
     enabled: !!submission?.id,
     queryFn: async () => {
@@ -98,31 +107,39 @@ function ChallengeDetail() {
   const state = challenge ? liveState(challenge, new Date(now)) : "agendado";
   const status = submissionLabel(submission?.status);
   const canSubmit =
-    !!challenge &&
+    !!challenge && !settings?.finished &&
     state === "ativo" &&
-    (!submission || (submission.status === "rejected" && challenge.allow_resubmit));
+    (!submission || (submission.status === "rejected" && challenge.allow_resubmit) || (submission.status === "submitted" && !filesPending && myFiles.length === 0));
 
   const upload = useMutation({
     mutationFn: async () => {
       if (!challenge || !userId) throw new Error("Sessão inválida");
+      if (!canSubmit) throw new Error("O desafio não está aberto para envios.");
       if (files.length === 0) throw new Error("Selecione ao menos um arquivo.");
-      const { data: sub, error: subError } = await supabase
-        .from("submissions")
-        .insert({ challenge_id: challenge.id, user_id: userId, status: "submitted" })
-        .select("id")
-        .single();
-      if (subError) throw subError;
+      if (challenge.requires_photo && !files.some((f) => f.type.startsWith("image/"))) throw new Error("Inclua uma foto para este desafio.");
+      if (challenge.requires_video && !files.some((f) => f.type.startsWith("video/"))) throw new Error("Inclua um vídeo para este desafio.");
+      let subId = submission?.id;
+      const isRetry = submission?.status === "rejected";
+      if (!subId) {
+        const { data: sub, error: subError } = await supabase
+          .from("submissions")
+          .insert({ challenge_id: challenge.id, user_id: userId })
+          .select("id")
+          .single();
+        if (subError) throw subError;
+        subId = sub.id;
+      }
 
       for (const file of files) {
         const ext = file.name.split(".").pop() ?? "bin";
-        const path = `${userId}/${sub.id}/${crypto.randomUUID()}.${ext}`;
+        const path = `${userId}/${subId}/${crypto.randomUUID()}.${ext}`;
         const { error: upError } = await supabase.storage.from("proofs").upload(path, file, {
           contentType: file.type,
           upsert: false,
         });
         if (upError) throw upError;
         const { error: rowError } = await supabase.from("submission_files").insert({
-          submission_id: sub.id,
+          submission_id: subId,
           user_id: userId,
           storage_path: path,
           file_type: file.type || "application/octet-stream",
@@ -130,17 +147,25 @@ function ChallengeDetail() {
         });
         if (rowError) throw rowError;
       }
+      if (isRetry && subId) {
+        const { error } = await supabase.rpc("resubmit_proof", { _submission_id: subId });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Envio recebido! Aguarde a validação da organização.");
       setFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["submission", id, userId] });
+      queryClient.invalidateQueries({ queryKey: ["submission-files"] });
       queryClient.invalidateQueries({ queryKey: ["my-submissions", userId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-submissions"] });
     },
     onError: (e: Error) => toast.error(e.message || "Não foi possível enviar."),
   });
 
-  if (!challenge) return <p className="py-10 text-center text-sm text-muted-foreground">Carregando desafio…</p>;
+  if (challengePending) return <p className="py-10 text-center text-sm text-muted-foreground">Carregando desafio…</p>;
+  if (challengeError || !challenge) return <p className="py-10 text-center text-sm text-muted-foreground">Desafio indisponível.</p>;
 
   const maxBytes = 100 * 1024 * 1024;
 
@@ -155,6 +180,7 @@ function ChallengeDetail() {
       <section className="animate-rise-in relative isolate overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
         <img
           src={bgAsset.url}
+          fetchPriority="high"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 -z-20 size-full object-cover object-center"
@@ -180,7 +206,7 @@ function ChallengeDetail() {
           {formatDateTime(challenge.ends_at)}
         </p>
         {state === "ativo" && (
-          <p className="text-sm font-semibold text-primary-foreground">Tempo restante: {countdown(challenge.ends_at, now)}</p>
+          <p className="text-sm font-semibold text-primary-foreground">Tempo restante: <TimeRemaining at={challenge.ends_at} /></p>
         )}
       </section>
 
@@ -209,11 +235,7 @@ function ChallengeDetail() {
                 Motivo: {submission.rejection_reason}
               </p>
             )}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {myFiles.map((f) => (
-                <MediaPreview key={f.id} path={f.storage_path} fileType={f.file_type} className="aspect-square w-full" />
-              ))}
-            </div>
+            <MediaGallery files={myFiles} />
           </CardContent>
         </Card>
       )}
@@ -238,7 +260,7 @@ function ChallengeDetail() {
                 setFiles(picked);
               }}
             />
-            <Button variant="outline" className="w-full gap-2" onClick={() => inputRef.current?.click()}>
+            <Button variant="outline" className="w-full gap-2" onClick={() => inputRef.current?.click()} disabled={upload.isPending}>
               <Upload className="size-4" /> Escolher foto ou vídeo
             </Button>
             {files.length > 0 && (
@@ -261,7 +283,8 @@ function ChallengeDetail() {
         </Card>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {state !== "ativo"
+           {settings?.finished ? "O evento foi encerrado para novos envios."
+             : state !== "ativo"
             ? "Este desafio não está aberto para envios."
             : submission?.status === "confirmed"
               ? "Sua participação já foi confirmada."
@@ -272,4 +295,13 @@ function ChallengeDetail() {
       )}
     </div>
   );
+}
+
+function TimeRemaining({ at }: { at: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span>{countdown(at, now)}</span>;
 }
