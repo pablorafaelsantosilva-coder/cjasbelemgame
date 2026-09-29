@@ -8,7 +8,7 @@ import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MediaPreview } from "@/components/MediaPreview";
+import { MediaGallery } from "@/components/MediaGallery";
 import { cn } from "@/lib/utils";
 import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import {
@@ -235,11 +235,7 @@ function ChallengeDetail() {
                 Motivo: {submission.rejection_reason}
               </p>
             )}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-             {myFiles.map((f) => (
-                <MediaPreview key={f.id} path={f.storage_path} fileType={f.file_type} className="aspect-square w-full" />
-              ))}
-            </div>
+            <MediaGallery files={myFiles} />
           </CardContent>
         </Card>
       )}

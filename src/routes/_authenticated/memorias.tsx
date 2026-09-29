@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useAuth";
-import { MediaPreview } from "@/components/MediaPreview";
+import { MediaGallery } from "@/components/MediaGallery";
 
 export const Route = createFileRoute("/_authenticated/memorias")({
   head: () => ({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/memorias")({
 
 function MemoriesPage() {
   const { userId } = useSession();
-  const { data: files = [], isLoading } = useQuery({
+  const { data: files = [], isLoading, isError } = useQuery({
     queryKey: ["my-files", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -38,14 +38,11 @@ function MemoriesPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Minhas memórias</h1>
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      {!isLoading && files.length === 0 && (
+      {isError && <p className="text-sm text-destructive">Não foi possível carregar suas memórias.</p>}
+      {!isLoading && !isError && files.length === 0 && (
         <p className="text-sm text-muted-foreground">Você ainda não enviou fotos ou vídeos.</p>
       )}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {files.map((f) => (
-          <MediaPreview key={f.id} path={f.storage_path} fileType={f.file_type} className="aspect-square w-full" />
-        ))}
-      </div>
+      <MediaGallery files={files} />
     </div>
   );
 }

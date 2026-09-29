@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MediaPreview } from "@/components/MediaPreview";
+import { MediaGallery } from "@/components/MediaGallery";
 import {
   Select,
   SelectContent,
@@ -37,18 +37,29 @@ function ValidationsPage() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rows = [], isLoading, isError } = useQuery({
     queryKey: ["admin-submissions", filter],
     refetchInterval: 15_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("*, challenges(title,points), profiles!submissions_user_id_fkey(name), submission_files(id,storage_path,file_type)")
+        .select("*, challenges(title,points), submission_files(id,storage_path,file_type)")
         .eq("status", filter)
         .order("submitted_at", { ascending: true })
         .limit(100);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  const { data: names = {} } = useQuery({
+    queryKey: ["validation-names", ids.join("|")],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id,name").in("id", ids);
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((p) => [p.id, p.name])) as Record<string, string>;
     },
   });
 
@@ -80,11 +91,12 @@ function ValidationsPage() {
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      {!isLoading && rows.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
+      {isError && <p className="text-sm text-destructive">Não foi possível carregar as validações.</p>}
+      {!isLoading && !isError && rows.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
 
       {rows.map((row) => {
         const challenge = row.challenges as { title: string; points: number } | null;
-        const profile = (row.profiles as { name: string } | null)?.name;
+        const profile = names[row.user_id];
         const files = (row.submission_files ?? []) as { id: string; storage_path: string; file_type: string }[];
         const status = submissionLabel(row.status);
         return (
@@ -102,11 +114,7 @@ function ValidationsPage() {
                   {profile ?? "Participante"} · +{challenge?.points ?? 0} pts
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {files.map((f) => (
-                  <MediaPreview key={f.id} path={f.storage_path} fileType={f.file_type} className="aspect-square w-full" />
-                ))}
-              </div>
+              <MediaGallery files={files} columns="grid-cols-2 gap-2 sm:grid-cols-4" />
               {row.rejection_reason && (
                 <p className="text-sm text-destructive">Motivo: {row.rejection_reason}</p>
               )}
