@@ -90,7 +90,7 @@ function ValidationsPage() {
         ))}
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
       {isError && <p className="text-sm text-destructive">Não foi possível carregar as validações.</p>}
       {!isLoading && !isError && rows.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
 

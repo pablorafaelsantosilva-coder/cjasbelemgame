@@ -9,7 +9,7 @@ export function MediaPreview({
   path: string;
   fileType: string;
   className?: string;
-  url?: string;
+  url?: string | undefined;
 }) {
   if (!url) {
     return <div className={cn("animate-pulse rounded-lg bg-muted", className)} />;
