@@ -39,7 +39,7 @@ function ValidationsPage() {
 
   const { data: rows = [], isLoading, isError } = useQuery({
     queryKey: ["admin-submissions", filter],
-    refetchInterval: 15_000,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("submissions")

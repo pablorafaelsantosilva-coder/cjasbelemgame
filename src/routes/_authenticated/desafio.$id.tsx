@@ -52,7 +52,7 @@ function ChallengeDetail() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
 
@@ -206,7 +206,7 @@ function ChallengeDetail() {
           {formatDateTime(challenge.ends_at)}
         </p>
         {state === "ativo" && (
-          <p className="text-sm font-semibold text-primary-foreground">Tempo restante: {countdown(challenge.ends_at, now)}</p>
+          <p className="text-sm font-semibold text-primary-foreground">Tempo restante: <TimeRemaining at={challenge.ends_at} /></p>
         )}
       </section>
 
@@ -295,4 +295,13 @@ function ChallengeDetail() {
       )}
     </div>
   );
+}
+
+function TimeRemaining({ at }: { at: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span>{countdown(at, now)}</span>;
 }

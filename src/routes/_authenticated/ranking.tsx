@@ -40,6 +40,7 @@ function RankingPage() {
       <section className="animate-rise-in relative isolate min-h-32 overflow-hidden rounded-2xl p-5 text-primary-foreground shadow-lg">
         <img
           src={bgAsset.url}
+          fetchPriority="high"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 -z-20 size-full object-cover object-center"
