@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: unread = 0 } = useQuery({
     queryKey: ["unread", userId],
     enabled: !!userId,
-    refetchInterval: 20_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { count } = await supabase
         .from("notifications")
