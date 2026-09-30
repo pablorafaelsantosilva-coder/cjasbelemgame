@@ -8,3 +8,4 @@
 - [x] Aplicar degradê branco e marrom com montanhas em todas as abas do participante
 - [ ] Corrigir reenvios, encerramento e permissões de comprovações e perfil
 - [ ] Tornar o logo clicável e melhorar carregamento, mídia e validação dos arquivos
+- [ ] Organizar mídias por desafio e participante para consulta e controle da organização
