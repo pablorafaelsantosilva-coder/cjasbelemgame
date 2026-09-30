@@ -50,7 +50,7 @@ function AdminMedia() {
     queryKey: ["admin-media", challengeId, participantId, page],
     queryFn: async () => {
       let query = supabase.from("submissions")
-        .select("id,user_id,challenge_id,status,submitted_at,submission_files(id,storage_path,file_type)", { count: "exact" })
+        .select("id,user_id,challenge_id,status,submitted_at,submission_files!inner(id,storage_path,file_type)", { count: "exact" })
         .order("submitted_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (challengeId !== "all") query = query.eq("challenge_id", challengeId);
