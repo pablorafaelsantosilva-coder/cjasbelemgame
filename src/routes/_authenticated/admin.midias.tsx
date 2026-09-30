@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/admin/midias")({
 });
 
 const PAGE_SIZE = 30;
+type MediaRow = { id: string; user_id: string; challenge_id: string; status: "submitted" | "confirmed" | "rejected"; submitted_at: string; submission_files: { id: string; storage_path: string; file_type: string }[] };
 
 function AdminMedia() {
   const [challengeId, setChallengeId] = useState("all");
@@ -62,7 +63,7 @@ function AdminMedia() {
 
   const challengeNames = new Map(challenges.map((c) => [c.id, c.title]));
   const participantNames = new Map(participants.map((p) => [p.id, p.name]));
-  const groups = new Map<string, typeof data.rows>();
+  const groups = new Map<string, MediaRow[]>();
   for (const row of data?.rows ?? []) {
     const existing = groups.get(row.challenge_id) ?? [];
     existing.push(row);
