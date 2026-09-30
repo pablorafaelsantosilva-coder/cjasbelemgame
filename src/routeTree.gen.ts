@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as AuthenticatedAdminDesafiosRouteImport } from './routes/_authenticated/admin.desafios'
+import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated/admin.midias'
 import { Route as AuthenticatedAdminParticipantesRouteImport } from './routes/_authenticated/admin.participantes'
 import { Route as AuthenticatedAdminValidacoesRouteImport } from './routes/_authenticated/admin.validacoes'
 import { Route as AuthenticatedDesafioIdRouteImport } from './routes/_authenticated/desafio.$id'
@@ -100,6 +101,12 @@ const AuthenticatedAdminDesafiosRoute =
     path: '/desafios',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMidiasRoute =
+  AuthenticatedAdminMidiasRouteImport.update({
+    id: '/midias',
+    path: '/midias',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminParticipantesRoute =
   AuthenticatedAdminParticipantesRouteImport.update({
     id: '/participantes',
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
+  '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
   '/admin/validacoes': typeof AuthenticatedAdminValidacoesRoute
   '/desafio/$id': typeof AuthenticatedDesafioIdRoute
@@ -148,6 +156,7 @@ export interface FileRoutesByTo {
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
+  '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
   '/admin/validacoes': typeof AuthenticatedAdminValidacoesRoute
   '/desafio/$id': typeof AuthenticatedDesafioIdRoute
@@ -168,6 +177,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
+  '/_authenticated/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/_authenticated/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
   '/_authenticated/admin/validacoes': typeof AuthenticatedAdminValidacoesRoute
   '/_authenticated/desafio/$id': typeof AuthenticatedDesafioIdRoute
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/admin/auditoria'
     | '/admin/configuracoes'
     | '/admin/desafios'
+    | '/admin/midias'
     | '/admin/participantes'
     | '/admin/validacoes'
     | '/desafio/$id'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/admin/auditoria'
     | '/admin/configuracoes'
     | '/admin/desafios'
+    | '/admin/midias'
     | '/admin/participantes'
     | '/admin/validacoes'
     | '/desafio/$id'
@@ -224,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/desafios'
+    | '/_authenticated/admin/midias'
     | '/_authenticated/admin/participantes'
     | '/_authenticated/admin/validacoes'
     | '/_authenticated/desafio/$id'
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDesafiosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/midias': {
+      id: '/_authenticated/admin/midias'
+      path: '/midias'
+      fullPath: '/admin/midias'
+      preLoaderRoute: typeof AuthenticatedAdminMidiasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/participantes': {
       id: '/_authenticated/admin/participantes'
       path: '/participantes'
@@ -365,6 +385,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminDesafiosRoute: typeof AuthenticatedAdminDesafiosRoute
+  AuthenticatedAdminMidiasRoute: typeof AuthenticatedAdminMidiasRoute
   AuthenticatedAdminParticipantesRoute: typeof AuthenticatedAdminParticipantesRoute
   AuthenticatedAdminValidacoesRoute: typeof AuthenticatedAdminValidacoesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -374,6 +395,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminDesafiosRoute: AuthenticatedAdminDesafiosRoute,
+  AuthenticatedAdminMidiasRoute: AuthenticatedAdminMidiasRoute,
   AuthenticatedAdminParticipantesRoute: AuthenticatedAdminParticipantesRoute,
   AuthenticatedAdminValidacoesRoute: AuthenticatedAdminValidacoesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
