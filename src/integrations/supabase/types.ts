@@ -107,6 +107,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          hidden: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          author_name?: string
+          body: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_settings: {
         Row: {
           end_date: string
