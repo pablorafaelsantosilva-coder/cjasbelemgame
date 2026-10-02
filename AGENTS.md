@@ -12,3 +12,4 @@
 - Keep submission creation and resubmission validation in database triggers and the participant RPC; this prevents direct client calls from bypassing event closure or manual review.
 - Share a short-lived TanStack Query cache across the app; it reduces redundant requests during navigation without leaving event data stale for long.
 - Keep organizer media browsing behind the admin route and existing row/storage policies; private proofs must never become publicly readable.
+- Keep the group chat in its own authenticated route with database-enforced author validation and admin-only hiding; this prevents forged messages and unauthorized moderation.
