@@ -9,4 +9,4 @@
 - [x] Corrigir reenvios, encerramento e permissões de comprovações e perfil
 - [x] Tornar o logo clicável e melhorar carregamento, mídia e validação dos arquivos
 - [x] Organizar mídias por desafio e participante para consulta e controle da organização
-- [ ] Adicionar chat para participantes do jogo (aguardando definição de conversa geral ou privada)
+- [ ] Adicionar chat geral para participantes do jogo, com moderação pela organização

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Home, Trophy, Images, User, Shield, LogOut } from "lucide-react";
+import { Bell, Home, Trophy, Images, User, Shield, LogOut, MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ import bgAsset from "@/assets/montanhas.jpg.asset.json";
 const navItems = [
   { to: "/dashboard", label: "Início", icon: Home },
   { to: "/ranking", label: "Ranking", icon: Trophy },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/memorias", label: "Memórias", icon: Images },
   { to: "/perfil", label: "Perfil", icon: User },
 ] as const;
@@ -99,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-5xl px-4 py-5">{children}</main>
 
       <nav aria-label="Navegação principal" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto grid max-w-5xl grid-cols-4">
+        <div className="mx-auto grid max-w-5xl grid-cols-5">
           {navItems.map((item) => {
             const active = pathname.startsWith(item.to);
             return (
