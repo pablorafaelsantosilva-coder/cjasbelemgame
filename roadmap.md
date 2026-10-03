@@ -10,5 +10,5 @@
 - [x] Tornar o logo clicável e melhorar carregamento, mídia e validação dos arquivos
 - [x] Organizar mídias por desafio e participante para consulta e controle da organização
 - [x] Adicionar chat geral para participantes do jogo, com moderação pela organização
-- [ ] Melhorar conversa geral com seleção de emojis, leitura confortável e atualizações eficientes
-- [ ] Revisar envio e exibição de fotos e vídeos, e verificar os principais fluxos do site
+- [x] Melhorar conversa geral com seleção de emojis, leitura confortável e atualizações eficientes
+- [x] Revisar envio e exibição de fotos e vídeos, e verificar os principais fluxos do site

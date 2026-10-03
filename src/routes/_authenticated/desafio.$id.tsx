@@ -68,7 +68,7 @@ function ChallengeDetail() {
   const { data: settings } = useQuery({
     queryKey: ["event-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("event_settings").select("finished").eq("id", 1).single();
+      const { data, error } = await supabase.from("event_settings").select("finished,max_file_mb").eq("id", 1).single();
       if (error) throw error;
       return data;
     },
@@ -110,12 +110,16 @@ function ChallengeDetail() {
     !!challenge && !settings?.finished &&
     state === "ativo" &&
     (!submission || (submission.status === "rejected" && challenge.allow_resubmit) || (submission.status === "submitted" && !filesPending && myFiles.length === 0));
+  const maxFileMb = settings?.max_file_mb ?? 50;
+  const maxBytes = maxFileMb * 1024 * 1024;
 
   const upload = useMutation({
     mutationFn: async () => {
       if (!challenge || !userId) throw new Error("Sessão inválida");
       if (!canSubmit) throw new Error("O desafio não está aberto para envios.");
       if (files.length === 0) throw new Error("Selecione ao menos um arquivo.");
+      if (files.some((file) => file.size > maxBytes)) throw new Error(`Cada arquivo pode ter no máximo ${maxFileMb} MB.`);
+      if (files.some((file) => !file.type.startsWith("image/") && !file.type.startsWith("video/"))) throw new Error("Envie apenas fotos ou vídeos.");
       if (challenge.requires_photo && !files.some((f) => f.type.startsWith("image/"))) throw new Error("Inclua uma foto para este desafio.");
       if (challenge.requires_video && !files.some((f) => f.type.startsWith("video/"))) throw new Error("Inclua um vídeo para este desafio.");
       let subId = submission?.id;
@@ -145,7 +149,10 @@ function ChallengeDetail() {
           file_type: file.type || "application/octet-stream",
           file_size: file.size,
         });
-        if (rowError) throw rowError;
+        if (rowError) {
+          await supabase.storage.from("proofs").remove([path]);
+          throw rowError;
+        }
       }
       if (isRetry && subId) {
         const { error } = await supabase.rpc("resubmit_proof", { _submission_id: subId });
@@ -166,8 +173,6 @@ function ChallengeDetail() {
 
   if (challengePending) return <p className="py-10 text-center text-sm text-muted-foreground">Carregando desafio…</p>;
   if (challengeError || !challenge) return <p className="py-10 text-center text-sm text-muted-foreground">Desafio indisponível.</p>;
-
-  const maxBytes = 100 * 1024 * 1024;
 
   return (
     <div className="space-y-5">
@@ -220,7 +225,7 @@ function ChallengeDetail() {
           <p className="text-xs text-muted-foreground">
             Comprovação: {challenge.requires_photo ? "foto" : ""}
             {challenge.requires_photo && challenge.requires_video ? " e " : ""}
-            {challenge.requires_video ? "vídeo" : ""} · até 100 MB por arquivo
+             {challenge.requires_video ? "vídeo" : ""} · até {maxFileMb} MB por arquivo
           </p>
         </CardContent>
       </Card>
@@ -254,7 +259,7 @@ function ChallengeDetail() {
                 const picked = Array.from(e.target.files ?? []);
                 const tooBig = picked.find((f) => f.size > maxBytes);
                 if (tooBig) {
-                  toast.error("Cada arquivo pode ter no máximo 100 MB.");
+                   toast.error(`Cada arquivo pode ter no máximo ${maxFileMb} MB.`);
                   return;
                 }
                 setFiles(picked);
