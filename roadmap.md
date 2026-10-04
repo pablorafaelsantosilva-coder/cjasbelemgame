@@ -12,3 +12,4 @@
 - [x] Adicionar chat geral para participantes do jogo, com moderação pela organização
 - [x] Melhorar conversa geral com seleção de emojis, leitura confortável e atualizações eficientes
 - [x] Revisar envio e exibição de fotos e vídeos, e verificar os principais fluxos do site
+- [x] Aplicar as montanhas do tema na conversa e aprimorar os detalhes visuais do chat
