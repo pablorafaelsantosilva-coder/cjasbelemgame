@@ -14,9 +14,10 @@ export const getSharedChatMedia = createServerFn({ method: "GET" })
     const paths = [...new Set((rows ?? []).flatMap((row) => row.file_paths))];
     if (paths.length === 0) return { rows: rows ?? [], urls: {} as Record<string, string> };
 
-    // The RPC returns only consented, approved media. Sign with the user's session;
-    // no broad storage read policy or permanent public URL is needed.
-    const { data: signed, error: signError } = await context.supabase.storage
+    // The authenticated RPC verifies each approved and consented submission
+    // before privileged signing; private proofs never gain broad storage access.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: signError } = await supabaseAdmin.storage
       .from("proofs").createSignedUrls(paths, 600);
     if (signError) throw signError;
     const urls: Record<string, string> = {};

@@ -157,12 +157,16 @@ function ChallengeDetail() {
         }
       }
       if (isRetry && subId) {
-        const { error } = await supabase.rpc("resubmit_proof", { _submission_id: subId });
-        if (error) throw error;
+        const { error: consentError } = await supabase.from("submission_chat_shares").delete().eq("submission_id", subId).eq("user_id", userId);
+        if (consentError) throw consentError;
       }
       if (shareInChat && subId) {
-        const { error } = await supabase.from("submission_chat_shares").upsert({ submission_id: subId, user_id: userId, hidden: false }, { onConflict: "submission_id" });
-        if (error) throw new Error("A comprovação foi enviada, mas não foi possível registrar a autorização para o chat. Ela continuará privada. Confira seu envio antes de tentar novamente.");
+        const { error: consentError } = await supabase.from("submission_chat_shares").insert({ submission_id: subId, user_id: userId });
+        if (consentError) throw new Error("A comprovação foi enviada, mas não foi possível registrar a autorização para o chat. Ela continuará privada. Confira seu envio antes de tentar novamente.");
+      }
+      if (isRetry && subId) {
+        const { error } = await supabase.rpc("resubmit_proof", { _submission_id: subId });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
