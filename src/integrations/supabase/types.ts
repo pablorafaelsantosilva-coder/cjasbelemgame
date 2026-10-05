@@ -280,6 +280,35 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_chat_shares: {
+        Row: {
+          created_at: string
+          hidden: boolean
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hidden?: boolean
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hidden?: boolean
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_chat_shares_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_files: {
         Row: {
           created_at: string
@@ -396,6 +425,19 @@ export type Database = {
         Returns: undefined
       }
       delete_challenge: { Args: { _challenge_id: string }; Returns: undefined }
+      get_chat_shared_media: {
+        Args: { _before?: string; _limit?: number }
+        Returns: {
+          author_id: string
+          author_name: string
+          challenge_title: string
+          created_at: string
+          file_ids: string[]
+          file_paths: string[]
+          file_types: string[]
+          submission_id: string
+        }[]
+      }
       get_leaderboard: {
         Args: never
         Returns: {
