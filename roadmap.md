@@ -13,4 +13,4 @@
 - [x] Melhorar conversa geral com seleção de emojis, leitura confortável e atualizações eficientes
 - [x] Revisar envio e exibição de fotos e vídeos, e verificar os principais fluxos do site
 - [x] Aplicar as montanhas do tema na conversa e aprimorar os detalhes visuais do chat
-- [ ] Perguntar no envio sobre compartilhamento e exibir no chat apenas mídias aprovadas com consentimento
+- [x] Perguntar no envio sobre compartilhamento e exibir no chat apenas mídias aprovadas com consentimento
