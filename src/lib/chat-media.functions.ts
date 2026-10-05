@@ -7,7 +7,7 @@ export const getSharedChatMedia = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ before: z.string().datetime().nullable() }).parse(input))
   .handler(async ({ context, data }) => {
     const { data: rows, error } = await context.supabase.rpc("get_chat_shared_media", {
-      _before: data.before ?? undefined,
+      ...(data.before ? { _before: data.before } : {}),
       _limit: 40,
     });
     if (error) throw error;
