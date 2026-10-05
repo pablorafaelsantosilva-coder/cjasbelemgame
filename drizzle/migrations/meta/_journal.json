@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791158809681,
+      "tag": "0000_consented_challenge_media_in_chat",
+      "breakpoints": true
+    }
+  ]
+}
