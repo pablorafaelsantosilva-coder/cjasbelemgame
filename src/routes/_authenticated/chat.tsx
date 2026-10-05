@@ -119,6 +119,15 @@ function ChatPage() {
     onError: () => toast.error("Não foi possível ocultar a mensagem."),
   });
 
+  const hideMedia = useMutation({
+    mutationFn: async (submissionId: string) => {
+      const { error } = await supabase.from("submission_chat_shares").update({ hidden: true }).eq("submission_id", submissionId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Mídia ocultada do chat."); void queryClient.invalidateQueries({ queryKey: ["chat-shared-media"] }); },
+    onError: () => toast.error("Não foi possível ocultar a mídia."),
+  });
+
   const messages = (data?.pages.flat() ?? []).filter((message) => !message.hidden).reverse();
   const sharedMedia = sharedData?.pages.flatMap((page) => page.rows.map((row) => ({ ...row, urls: page.urls }))) ?? [];
   const timeline = [
