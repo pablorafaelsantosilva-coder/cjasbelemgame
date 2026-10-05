@@ -8,6 +8,7 @@ import { useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { MediaGallery } from "@/components/MediaGallery";
 import { cn } from "@/lib/utils";
 import bgAsset from "@/assets/montanhas.jpg.asset.json";
@@ -49,6 +50,7 @@ function ChallengeDetail() {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [shareInChat, setShareInChat] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -158,10 +160,15 @@ function ChallengeDetail() {
         const { error } = await supabase.rpc("resubmit_proof", { _submission_id: subId });
         if (error) throw error;
       }
+      if (shareInChat && subId) {
+        const { error } = await supabase.from("submission_chat_shares").upsert({ submission_id: subId, user_id: userId, hidden: false }, { onConflict: "submission_id" });
+        if (error) throw new Error("A comprovação foi enviada, mas não foi possível registrar a autorização para o chat. Ela continuará privada. Confira seu envio antes de tentar novamente.");
+      }
     },
     onSuccess: () => {
-      toast.success("Envio recebido! Aguarde a validação da organização.");
+      toast.success(shareInChat ? "Envio recebido! Se aprovado, aparecerá no chat geral." : "Envio recebido! Aguarde a validação da organização.");
       setFiles([]);
+      setShareInChat(false);
       if (inputRef.current) inputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["submission", id, userId] });
       queryClient.invalidateQueries({ queryKey: ["submission-files"] });
@@ -277,6 +284,13 @@ function ChallengeDetail() {
                 ))}
               </ul>
             )}
+            <div className="flex items-center gap-3 border-t border-border pt-3">
+              <Switch id="share-proof-in-chat" checked={shareInChat} onCheckedChange={setShareInChat} disabled={upload.isPending} aria-label="Mostrar foto ou vídeo no chat geral após aprovação" />
+              <label htmlFor="share-proof-in-chat" className="min-w-0 cursor-pointer text-sm font-medium">
+                Mostrar para todos no chat geral?
+                <span className="block text-xs font-normal text-muted-foreground">Opcional. Só aparece após a organização aprovar. Desligado mantém sua mídia privada.</span>
+              </label>
+            </div>
             <Button
               className="w-full"
               disabled={upload.isPending || files.length === 0}
