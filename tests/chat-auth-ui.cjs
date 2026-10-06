@@ -51,6 +51,7 @@ const first = {
   reply_to_id: null,
   created_at: "2026-10-06T01:00:00Z",
 };
+let emptyInbox = false;
 let failDirect = false;
 let legacyChat = false,
   admin = false,
@@ -202,6 +203,7 @@ let loginError = "invalid_credentials",
           allow_resubmit: true,
         },
       ];
+    if (emptyInbox && u.pathname.endsWith("/get_direct_inbox")) result = [];
     if (req.method() === "HEAD")
       return route.fulfill({ status: 200, headers: { "content-range": "0-0/0" } });
     return route.fulfill({
@@ -340,6 +342,9 @@ let loginError = "invalid_credentials",
     const beforeEnter = sent.length;
     await page.getByRole("textbox", { name: "Mensagem privada" }).press("End");
     await page.getByRole("textbox", { name: "Mensagem privada" }).press("Enter");
+    await page.waitForFunction(() =>
+      document.querySelector('textarea[aria-label="Mensagem privada"]').value.includes("\n"),
+    );
     assert.equal(sent.length, beforeEnter);
     assert.ok(
       (await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue()).includes("\n"),
@@ -401,6 +406,18 @@ let loginError = "invalid_credentials",
     );
     await page.screenshot({ path: path.join(artifacts, "admin-readiness-mobile.png") });
     console.log("PASS administrador: diagnóstico de migração e layout de 320px");
+    legacyChat = false;
+    emptyInbox = true;
+    admin = false;
+    await page.goto(base + "/chat");
+    await page.getByRole("tab", { name: "Privadas" }).click();
+    await page.getByText("Adicionar pessoas", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Bruno Santos" }).click();
+    await page.getByRole("heading", { name: "Bruno Santos" }).waitFor();
+    assert.equal(await page.getByRole("textbox", { name: "Mensagem privada" }).isEnabled(), true);
+    console.log(
+      "PASS primeira conversa: participantes aparecem automaticamente e seleção abre o privado",
+    );
   } catch (error) {
     await page.screenshot({ path: path.join(artifacts, "ui-test-failure.png") });
     throw error;

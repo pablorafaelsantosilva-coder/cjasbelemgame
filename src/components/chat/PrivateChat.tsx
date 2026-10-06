@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useProfile, useSession } from "@/hooks/useAuth";
+import { useIsAdmin, useProfile, useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,6 +46,7 @@ export function PrivateChat({
 }) {
   const { userId } = useSession();
   const { data: profile } = useProfile(userId);
+  const { data: isAdmin } = useIsAdmin(userId);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [term, setTerm] = useState("");
@@ -83,9 +84,15 @@ export function PrivateChat({
     },
     refetchInterval: live ? 60_000 : 20_000,
   });
+  const missingSetup = [inbox.error].some(
+    (error) =>
+      error && ["PGRST202", "PGRST205", "42P01"].includes((error as { code?: string }).code ?? ""),
+  );
+  const directoryOpen =
+    newConversation || !!term || (!inbox.isPending && !inbox.isError && inbox.data?.length === 0);
   const people = useQuery({
     queryKey: ["chat-people", userId, term],
-    enabled: !!userId && active && (newConversation || !!term),
+    enabled: !!userId && active && directoryOpen,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_chat_people", { _search: term, _limit: 100 });
       if (error) throw error;
@@ -255,14 +262,28 @@ export function PrivateChat({
           <div className="flex items-center justify-between">
             <h2 className="font-bold">Suas conversas</h2>
             <Button
-              size="icon"
-              variant="ghost"
+              size="sm"
+              variant="default"
               aria-label="Nova conversa"
+              aria-expanded={directoryOpen}
               onClick={() => setNewConversation(!newConversation)}
             >
-              <MessageSquarePlus className="size-5" />
+              <MessageSquarePlus className="mr-1.5 size-4" />
+              Adicionar pessoas
             </Button>
           </div>
+          {newConversation && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setNewConversation(false);
+                setSearch("");
+              }}
+            >
+              Voltar às conversas
+            </Button>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
             <Input
@@ -275,17 +296,38 @@ export function PrivateChat({
             />
           </div>
         </div>
+        {missingSetup && (
+          <div role="status" className="space-y-2 border-b bg-warning/10 p-4 text-sm">
+            <p className="font-semibold">O chat privado ainda precisa ser ativado.</p>
+            <p className="text-xs">
+              A organização precisa concluir a configuração. Depois disso, você poderá escolher uma
+              pessoa e enviar uma mensagem.
+            </p>
+            {isAdmin && (
+              <p className="break-words text-xs">
+                No Lovable, aplique a migração{" "}
+                <code className="break-all">20261006033000_private_chat_and_replies.sql</code> e
+                verifique novamente no Painel → Visão geral.
+              </p>
+            )}
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {newConversation || term ? (
+          {directoryOpen ? (
             <>
               <p className="px-2 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Iniciar conversa
+                Escolha uma pessoa do evento
               </p>
               {people.isPending && <p className="p-3 text-sm">Buscando participantes…</p>}
               {people.isError && (
-                <p className="p-3 text-sm text-destructive">
-                  Não foi possível buscar participantes.
-                </p>
+                <div role="alert" className="space-y-2 p-3 text-sm">
+                  <p>
+                    Não foi possível buscar participantes. Verifique a conexão ou tente novamente.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => people.refetch()}>
+                    Buscar novamente
+                  </Button>
+                </div>
               )}
               {people.data?.map((p) => (
                 <button

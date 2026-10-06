@@ -1,5 +1,11 @@
 # Chat, autenticação e capacidade — 6 de outubro de 2026
 
+## Adicionar pessoas às conversas privadas
+
+Na aba Privadas, o botão visível **Adicionar pessoas** abre a busca de participantes cadastrados e ativos. Para quem ainda não tem conversas, o diretório abre automaticamente. Selecionar uma pessoa abre a conversa; ela passa a integrar o histórico após o primeiro envio. Não é um convite por telefone/e-mail nem um grupo privado. A busca possui nova tentativa em caso de falha.
+
+Erros específicos de função/tabela ausente mostram que o recurso precisa ser ativado; administradores recebem o nome da migração na própria tela. A busca continua usando `get_chat_people`, sem expor e-mails ou consultar perfis por um caminho que contorne as políticas. O teste de primeira conversa usa caixa de entrada vazia e verifica que selecionar um participante abre o campo de envio.
+
 ## Acabamento final do chat
 
 Geral e Privadas usam a mesma caixa de escrita, com expansão até 128 px, emojis e prévia da resposta. Em dispositivos de toque, Enter insere uma linha; o botão envia. No computador, Enter envia e Shift+Enter insere uma linha. O símbolo de confirmação significa apenas envio, sem simular leitura pelo destinatário.
