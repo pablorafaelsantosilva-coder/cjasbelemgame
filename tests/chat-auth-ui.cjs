@@ -1,0 +1,249 @@
+// Runs entirely against mocked Supabase responses; never creates real users or sends emails.
+// Requires playwright and a Chromium binary. Set PLAYWRIGHT_MODULE and CHROMIUM_PATH if needed.
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
+const fs = require("node:fs");
+const assert = require("node:assert/strict");
+const path = require("node:path");
+const env = Object.fromEntries(
+  fs
+    .readFileSync(path.join(__dirname, "../.env"), "utf8")
+    .trim()
+    .split("\n")
+    .map((l) => {
+      const i = l.indexOf("=");
+      return [l.slice(0, i), l.slice(i + 1).replace(/^"|"$/g, "")];
+    }),
+);
+const artifacts = process.env.TEST_ARTIFACTS || require("node:os").tmpdir();
+const base = process.env.TEST_URL || "http://127.0.0.1:5173";
+const host = new URL(env.VITE_SUPABASE_URL).hostname;
+const uid = "00000000-0000-4000-8000-000000000001";
+const peer2 = "00000000-0000-4000-8000-000000000002";
+const peer3 = "00000000-0000-4000-8000-000000000003";
+const user = {
+  id: uid,
+  email: "teste@example.com",
+  aud: "authenticated",
+  role: "authenticated",
+  app_metadata: { provider: "email" },
+  user_metadata: {},
+  email_confirmed_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+};
+const enc = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const session = {
+  access_token:
+    enc({ alg: "HS256", typ: "JWT" }) +
+    "." +
+    enc({ sub: uid, exp: Math.floor(Date.now() / 1000) + 3600, role: "authenticated" }) +
+    ".mock",
+  refresh_token: "mock-refresh",
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  expires_in: 3600,
+  token_type: "bearer",
+  user,
+};
+const first = {
+  id: "00000000-0000-4000-8000-000000000010",
+  sender_id: peer2,
+  recipient_id: uid,
+  body: "Oi! Vamos ao desafio?",
+  reply_to_id: null,
+  created_at: "2026-10-06T01:00:00Z",
+};
+let loginError = "invalid_credentials",
+  recoverRequests = 0,
+  sent = [];
+(async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.CHROMIUM_PATH,
+    args: [
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--use-gl=disabled",
+      "--no-zygote",
+    ],
+  });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.routeWebSocket("**/*", (socket) => socket.close());
+  await context.route("**/*", async (route) => {
+    const req = route.request(),
+      u = new URL(req.url());
+    if (u.origin === base && !u.pathname.includes("_serverFn/")) return route.continue();
+    if (u.hostname !== host) return route.abort();
+    let result = [],
+      status = 200;
+    if (u.pathname.endsWith("/auth/v1/signup")) result = { user, session: null };
+    else if (u.pathname.endsWith("/auth/v1/resend")) result = {};
+    else if (u.pathname.endsWith("/auth/v1/recover")) {
+      recoverRequests++;
+      result = {};
+    } else if (u.pathname.endsWith("/auth/v1/token")) {
+      status = 400;
+      result = { code: loginError, error_code: loginError, msg: "Mock authentication error" };
+    } else if (u.pathname.endsWith("/auth/v1/user")) result = user;
+    else if (u.pathname.endsWith("/user_roles")) result = [];
+    else if (u.pathname.endsWith("/profiles"))
+      result = {
+        id: uid,
+        name: "Pessoa Teste",
+        email: user.email,
+        status: "active",
+        avatar_url: null,
+        total_points: 0,
+      };
+    else if (u.pathname.endsWith("/get_direct_inbox"))
+      result = [
+        {
+          peer_id: peer2,
+          peer_name: "Ana Silva",
+          peer_avatar_url: null,
+          peer_active: true,
+          last_body: "Oi! Vamos ao desafio?",
+          last_at: first.created_at,
+          last_sender_id: peer2,
+        },
+      ];
+    else if (u.pathname.endsWith("/get_chat_people"))
+      result = [
+        { id: peer2, name: "Ana Silva", avatar_url: null },
+        { id: peer3, name: "Bruno Santos", avatar_url: null },
+      ];
+    else if (u.pathname.endsWith("/direct_messages")) {
+      if (req.method() === "POST") {
+        const payload = req.postDataJSON();
+        sent.push(payload);
+        result = {};
+      } else
+        result = u.searchParams.get("sender_id")?.includes(peer3)
+          ? []
+          : [
+              first,
+              ...sent
+                .filter((m) => m.recipient_id === peer2)
+                .map((m, i) => ({
+                  ...m,
+                  id: `00000000-0000-4000-8000-${String(i + 50).padStart(12, "0")}`,
+                  created_at: "2026-10-06T02:00:00Z",
+                })),
+            ].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    } else if (u.pathname.endsWith("/chat_messages"))
+      result = [
+        {
+          id: "00000000-0000-4000-8000-000000000020",
+          author_id: peer2,
+          author_name: "Ana Silva",
+          body: "Olá, pessoal!",
+          hidden: false,
+          reply_to_id: null,
+          created_at: first.created_at,
+        },
+      ];
+    if (req.method() === "HEAD")
+      return route.fulfill({ status: 200, headers: { "content-range": "0-0/0" } });
+    return route.fulfill({
+      status,
+      headers: {
+        "x-supabase-api-version": "2024-01-01",
+        "access-control-expose-headers": "X-Supabase-Api-Version",
+      },
+      contentType: "application/json",
+      body: JSON.stringify(result),
+    });
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(15000);
+  page.on("pageerror", (error) => console.error("PAGE", error.message));
+  try {
+    await page.goto(base + "/auth");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("tab", { name: "Criar conta" }).click();
+    await page.locator("#name").fill("Pessoa Teste");
+    await page.locator("#email2").fill("teste@example.com");
+    await page.locator("#pass2").fill("password123");
+    await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+    await page.getByRole("heading", { name: "Falta confirmar seu e-mail!" }).waitFor();
+    assert.equal(await page.locator("#password").inputValue(), "");
+    assert.equal(
+      await page.getByRole("link", { name: "Abrir Gmail", exact: false }).getAttribute("href"),
+      "https://mail.google.com/",
+    );
+    await page.reload();
+    await page.getByRole("heading", { name: "Falta confirmar seu e-mail!" }).waitFor();
+    console.log("PASS cadastro: confirmação visível, Gmail e persistência após recarregar");
+    await page.locator("#password").fill("wrong-password");
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos" }).waitFor();
+    console.log("PASS senha incorreta: erro persistente e orientação de recuperação");
+    loginError = "email_not_confirmed";
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "Confirme seu e-mail" }).waitFor();
+    console.log("PASS login não confirmado");
+    await page.getByRole("button", { name: "Esqueci minha senha" }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Enviar link de recuperação" }).click();
+    await page.getByText("Se este e-mail tiver uma conta", { exact: false }).waitFor();
+    assert.equal(recoverRequests, 1);
+    await page.keyboard.press("Escape");
+    console.log("PASS recuperação: formulário e confirmação persistente");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: path.join(artifacts, "auth-confirmation-mobile.png") });
+    await page.evaluate(({ key, session }) => localStorage.setItem(key, JSON.stringify(session)), {
+      key: `sb-${host.split(".")[0]}-auth-token`,
+      session,
+    });
+    await page.goto(base + "/reset-password");
+    await page.locator("#new-password").fill("new-password");
+    await page.locator("#confirm-password").fill("different-password");
+    await page.getByRole("button", { name: "Salvar nova senha" }).click();
+    await page.getByRole("alert").filter({ hasText: "As senhas não são iguais" }).waitFor();
+    await page.locator("#confirm-password").fill("new-password");
+    await page.getByRole("button", { name: "Salvar nova senha" }).click();
+    await page.getByRole("heading", { name: "Senha atualizada!" }).waitFor();
+    console.log("PASS redefinição: confirmação de senha e salvamento");
+    await page.goto(base + "/chat");
+    await page.getByRole("tab", { name: "Privadas" }).click();
+    await page.getByRole("button", { name: /Ana Silva/ }).click();
+    await page.getByRole("button", { name: "Responder à mensagem: Oi! Vamos ao desafio?" }).click();
+    await page.getByText("Respondendo a Ana Silva").waitFor();
+    await page.getByRole("textbox", { name: "Mensagem privada" }).fill("Vamos sim!");
+    await page.getByRole("button", { name: "Enviar mensagem privada" }).click();
+    await page.getByText("Vamos sim!", { exact: true }).waitFor();
+    assert.equal(sent[0].reply_to_id, first.id);
+    assert.equal(sent[0].recipient_id, peer2);
+    console.log("PASS privado: conversa correta e referência de resposta enviada");
+    await page.getByRole("textbox", { name: "Mensagem privada" }).fill("Rascunho da Ana");
+    await page.getByRole("button", { name: "Voltar às conversas" }).click();
+    await page.getByRole("button", { name: "Nova conversa", exact: true }).click();
+    await page.getByRole("button", { name: "Bruno Santos" }).click();
+    assert.equal(await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue(), "");
+    await page.getByRole("textbox", { name: "Mensagem privada" }).fill("Rascunho do Bruno");
+    await page.getByRole("button", { name: "Voltar às conversas" }).click();
+    await page.getByRole("button", { name: /Ana Silva/ }).click();
+    assert.equal(
+      await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue(),
+      "Rascunho da Ana",
+    );
+    console.log("PASS rascunhos separados por destinatário");
+    await page.screenshot({ path: path.join(artifacts, "private-chat-mobile.png") });
+    await page.getByRole("tab", { name: "Geral", exact: true }).click();
+    await page.getByRole("button", { name: "Responder à mensagem de Ana Silva" }).click();
+    await page.getByText("Respondendo a Ana Silva").waitFor();
+    await page.getByRole("button", { name: "Cancelar resposta" }).click();
+    console.log("PASS responder e cancelar no chat geral");
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByRole("tab", { name: "Privadas" }).click();
+    await page.screenshot({ path: path.join(artifacts, "private-chat-desktop.png") });
+  } catch (error) {
+    await page.screenshot({ path: path.join(artifacts, "ui-test-failure.png") });
+    throw error;
+  } finally {
+    await browser.close();
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

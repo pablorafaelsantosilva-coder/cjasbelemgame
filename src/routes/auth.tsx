@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SparkCelebration } from "@/components/SparkCelebration";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { MailCheck, ExternalLink } from "lucide-react";
+import {
+  authErrorMessage,
+  clearPendingEmail,
+  loadPendingEmail,
+  savePendingEmail,
+} from "@/lib/auth-feedback";
 import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
@@ -80,97 +87,146 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [recovering, setRecovering] = useState(false);
-  const [celebrating, setCelebrating] = useState(false);
+  const [signupReady, setSignupReady] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoverAfter, setRecoverAfter] = useState(0);
+  const noticeRef = useRef<HTMLElement>(null);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [resendAfter, setResendAfter] = useState(0);
   const [clock, setClock] = useState(Date.now());
   useEffect(() => {
+    const pending = loadPendingEmail();
+    if (pending) {
+      setVerificationEmail(pending);
+      setEmail(pending);
+    }
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (verificationEmail)
+      noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [verificationEmail]);
+
+  function requireConfirmation(address: string) {
+    setVerificationEmail(address);
+    savePendingEmail(address);
+    setTab("login");
+    setPassword("");
+  }
   async function resendConfirmation() {
-    if (!verificationEmail || Date.now() < resendAfter) return;
+    if (!verificationEmail || resending || Date.now() < resendAfter) return;
     setResending(true);
+    setFormError("");
+    setNotice("");
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: verificationEmail,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: `${window.location.origin}/auth` },
       });
       if (error) throw error;
       setResendAfter(Date.now() + 60_000);
-      toast.success("Confira sua caixa de entrada e a pasta de spam.");
-    } catch {
-      toast.error("Não foi possível reenviar agora. Aguarde um minuto e tente novamente.");
+      setNotice("Confirmação solicitada. Confira sua caixa de entrada e a pasta de spam.");
+    } catch (error) {
+      setFormError(
+        authErrorMessage(error, "Não foi possível reenviar. Aguarde um minuto e tente novamente."),
+      );
     } finally {
       setResending(false);
     }
   }
-
   useEffect(() => {
-    if (session && !celebrating) navigate({ to: "/dashboard", replace: true });
-  }, [session, navigate, celebrating]);
+    if (session && !loading && !signupReady) {
+      clearPendingEmail();
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [session, navigate, loading, signupReady]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+    setFormError("");
+    setNotice("");
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]!.message);
+      setFormError("Informe um e-mail válido.");
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: parsed.data, password });
-    setLoading(false);
-    if (error) {
-      if (error.code === "email_not_confirmed") {
-        setVerificationEmail(parsed.data);
-        toast.error("Confirme seu e-mail para entrar.");
-      } else {
-        toast.error("Não foi possível entrar. Verifique e-mail e senha.");
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: parsed.data, password });
+      if (error) {
+        if (error.code === "email_not_confirmed") requireConfirmation(parsed.data);
+        throw error;
       }
-      return;
+      clearPendingEmail();
+      setVerificationEmail("");
+      navigate({ to: "/dashboard", replace: true });
+    } catch (error) {
+      setFormError(
+        authErrorMessage(
+          error,
+          "Não foi possível entrar. Confira seu e-mail e senha ou recupere sua senha.",
+        ),
+      );
+    } finally {
+      setLoading(false);
     }
-    navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+    setFormError("");
+    setNotice("");
     const parsedEmail = emailSchema.safeParse(email);
+    const parsedPass = passSchema.safeParse(password);
     if (!parsedEmail.success) {
-      toast.error(parsedEmail.error.issues[0]!.message);
+      setFormError("Informe um e-mail válido.");
       return;
     }
-    const parsedPass = passSchema.safeParse(password);
     if (!parsedPass.success) {
-      toast.error(parsedPass.error.issues[0]!.message);
+      setFormError(parsedPass.error.issues[0]!.message);
       return;
     }
     if (name.trim().length < 2) {
-      toast.error("Informe seu nome completo.");
+      setFormError("Informe seu nome completo.");
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsedEmail.data,
-      password,
-      options: { emailRedirectTo: window.location.origin, data: { name: name.trim() } },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: parsedEmail.data,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth`, data: { name: name.trim() } },
+      });
+      if (error) throw error;
+      if (!data.session) {
+        requireConfirmation(parsedEmail.data);
+        setResendAfter(Date.now() + 60_000);
+      } else {
+        clearPendingEmail();
+        setVerificationEmail("");
+        setPassword("");
+        setSignupReady(true);
+      }
+    } catch (error) {
+      setFormError(
+        authErrorMessage(
+          error,
+          "Não foi possível criar a conta. Confira os dados ou tente recuperar sua senha se já tiver cadastro.",
+        ),
+      );
+    } finally {
+      setLoading(false);
     }
-    if (!data.session) {
-      setVerificationEmail(parsedEmail.data);
-      setPassword("");
-      setResendAfter(Date.now() + 60_000);
-      setTab("login");
-      return;
-    }
-    setCelebrating(true);
-    window.setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2200);
   }
 
   async function handleGoogle() {
@@ -197,22 +253,33 @@ function AuthPage() {
     navigate({ to: "/dashboard", replace: true });
   }
 
-  async function handleRecover() {
+  async function handleRecover(e: React.FormEvent) {
+    e.preventDefault();
+    if (recovering || Date.now() < recoverAfter) return;
+    setRecoveryError("");
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) {
-      toast.error("Informe seu e-mail para recuperar a senha.");
+      setRecoveryError("Informe um e-mail válido para recuperar a senha.");
       return;
     }
     setRecovering(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setRecovering(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setRecoverySent(true);
+      setRecoverAfter(Date.now() + 60_000);
+    } catch (error) {
+      setRecoveryError(
+        authErrorMessage(
+          error,
+          "Não foi possível solicitar a recuperação. Confira sua conexão e tente novamente.",
+        ),
+      );
+    } finally {
+      setRecovering(false);
     }
-    toast.success("Enviamos um link de recuperação para o seu e-mail.");
   }
 
   return (
@@ -222,7 +289,7 @@ function AuthPage() {
     >
       <div className="absolute inset-0 bg-gradient-to-r from-primary/55 via-background/75 to-primary/55" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/25 via-background/50 to-background/90 backdrop-blur-[1px]" />
-      {celebrating && <SparkCelebration label="Conta criada!" />}
+
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
           <Link to="/" aria-label="Voltar à tela inicial" className="inline-block">
@@ -236,20 +303,112 @@ function AuthPage() {
           <p className="text-sm text-muted-foreground">Entre para ver seus desafios</p>
         </div>
 
+        <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}>
+          <DialogContent>
+            <DialogTitle>Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe o e-mail usado no cadastro para receber um link e criar uma nova senha.
+            </DialogDescription>
+            <form onSubmit={handleRecover} className="space-y-3">
+              <Label htmlFor="recover-email">Seu e-mail</Label>
+              <Input
+                id="recover-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setRecoverySent(false);
+                }}
+                required
+              />
+              {recoveryError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {recoveryError}
+                </p>
+              )}
+              {recoverySent && (
+                <div role="status" className="space-y-2 rounded-lg bg-secondary p-3 text-sm">
+                  <p>
+                    Se este e-mail tiver uma conta, você receberá um link de recuperação. Confira
+                    também o spam.
+                  </p>
+                  <a
+                    href="https://mail.google.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                  >
+                    Abrir Gmail
+                  </a>
+                </div>
+              )}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={recovering || clock < recoverAfter}
+              >
+                {recovering
+                  ? "Enviando…"
+                  : clock < recoverAfter
+                    ? `Solicitar novamente em ${Math.ceil((recoverAfter - clock) / 1000)}s`
+                    : "Enviar link de recuperação"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
         <div className="surface p-5">
+          {formError && (
+            <p
+              role="alert"
+              className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive"
+            >
+              {formError}
+            </p>
+          )}
+          {notice && (
+            <p role="status" className="mb-4 rounded-xl bg-secondary p-3 text-sm">
+              {notice}
+            </p>
+          )}
+          {signupReady && (
+            <section
+              className="mb-5 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
+              role="status"
+            >
+              <h2 className="font-semibold">Conta criada com sucesso!</h2>
+              <p className="text-sm">Sua conta está pronta e o acesso já foi liberado.</p>
+              <Button
+                className="w-full"
+                onClick={() => navigate({ to: "/dashboard", replace: true })}
+              >
+                Continuar para o evento
+              </Button>
+            </section>
+          )}
           {verificationEmail && (
             <section
+              ref={noticeRef}
               role="status"
               aria-live="polite"
               className="mb-5 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
             >
-              <h2 className="font-semibold">Verifique seu e-mail</h2>
+              <MailCheck className="size-9 text-primary" />
+              <h2 className="text-xl font-bold">Falta confirmar seu e-mail!</h2>
               <p className="text-sm">
                 Abra o link de confirmação enviado para{" "}
                 <strong className="break-all">{verificationEmail}</strong> antes de entrar.
               </p>
               <p className="text-xs text-muted-foreground">
                 Confira também o spam. Depois de confirmar, volte aqui e faça login.
+              </p>
+              <Button asChild className="w-full gap-2">
+                <a href="https://mail.google.com/" target="_blank" rel="noopener noreferrer">
+                  Abrir Gmail <ExternalLink className="size-4" />
+                </a>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Usa outro e-mail? Abra o aplicativo da sua caixa de entrada.
               </p>
               <Button
                 type="button"
@@ -268,7 +427,9 @@ function AuthPage() {
                 type="button"
                 className="text-sm underline"
                 onClick={() => {
+                  clearPendingEmail();
                   setVerificationEmail("");
+                  setFormError("");
                   setTab("signup");
                 }}
               >
@@ -276,7 +437,13 @@ function AuthPage() {
               </button>
             </section>
           )}
-          <Tabs value={tab} onValueChange={setTab}>
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              setTab(v);
+              setFormError("");
+            }}
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
@@ -305,13 +472,16 @@ function AuthPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  Entrar
+                  {loading ? "Entrando…" : "Entrar"}
                 </Button>
                 <button
                   type="button"
-                  onClick={handleRecover}
+                  onClick={() => {
+                    setRecoveryOpen(true);
+                    setRecoveryError("");
+                  }}
                   disabled={recovering}
-                  className="w-full text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  className="w-full rounded-lg py-2 text-sm font-semibold text-primary underline underline-offset-4"
                 >
                   Esqueci minha senha
                 </button>
@@ -319,6 +489,10 @@ function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
+              <p className="mt-4 rounded-lg bg-secondary p-3 text-sm">
+                Depois de criar sua conta, confira seu e-mail e clique no link de confirmação, se
+                solicitado. Verifique também a pasta de spam.
+              </p>
               <form className="space-y-3 pt-4" onSubmit={handleSignup}>
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Nome completo</Label>
@@ -351,7 +525,7 @@ function AuthPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  Criar conta
+                  {loading ? "Criando conta…" : "Criar conta"}
                 </Button>
               </form>
             </TabsContent>
