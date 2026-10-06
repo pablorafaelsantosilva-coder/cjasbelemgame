@@ -1,5 +1,15 @@
 # Chat, autenticação e capacidade — 6 de outubro de 2026
 
+## Correção após o relato da tela de mensagens
+
+O erro relatado é compatível com a leitura de `reply_to_id` antes de aplicar a migração. A interface agora reconhece especificamente o erro de coluna ausente (`42703`/`PGRST204`) e consulta as colunas anteriores mantendo a mesma autenticação e RLS. Outros erros continuam aparecendo como falhas, sem disfarçar problemas de permissão ou conexão. Mensagens sem citação não enviam o campo novo, permitindo continuar o chat geral no banco anterior. Responder fica indisponível enquanto o campo não existe; não há simulação de conversa privada sem proteção de banco.
+
+Avisos de falha ficam fora da área rolável, evitando texto cortado atrás do cabeçalho. A caixa de escrita começa compacta e o histórico usa data e identificador juntos na paginação, para não pular mensagens com o mesmo horário. O painel administrativo ganhou diagnóstico de disponibilidade das tabelas e funções, com orientação de migração. Esse diagnóstico usa apenas leituras e não certifica RLS, Realtime, envio ou capacidade.
+
+Melhorias adicionais: início com progresso, próximo desafio elegível por prazo e filtros de situação; ranking com destaques, posição pessoal, busca por nome e exibição gradual; memórias com filtros de fotos/vídeos e lotes de 24 para reduzir assinatura e renderização de mídias; tema claro/escuro persistente, aviso de falta de conexão, navegação com área segura do celular, foco acessível e telas de erro em português. O início e o ranking compartilham a consulta em cache. Falhas de contagem administrativa deixam de se passar por zero.
+
+O teste de navegador passou em 13 fluxos, incluindo banco anterior, envio sem `reply_to_id`, indisponibilidade de privados, filtros do início, busca no ranking, persistência do tema e diagnóstico administrativo em 320 px. As respostas de rede são simuladas; não foi executada migração nem enviado e-mail real. Esta correção de interface não requer uma nova migração, mas a ativação de privados/respostas e a proteção de comprovações ainda dependem das migrações abaixo. Publicar a nova versão no Lovable depois da sincronização do GitHub.
+
 ## Entrega e ativação
 
 O código acrescenta as abas Geral e Privadas, busca de participantes, conversas individuais, respostas com citação, emojis e rascunhos separados por destinatário. A interface adapta a lista de conversas para celular. O indicador de envio não representa confirmação de leitura.

@@ -51,6 +51,9 @@ const first = {
   reply_to_id: null,
   created_at: "2026-10-06T01:00:00Z",
 };
+let legacyChat = false,
+  admin = false,
+  groupSent = [];
 let loginError = "invalid_credentials",
   recoverRequests = 0,
   sent = [];
@@ -85,7 +88,7 @@ let loginError = "invalid_credentials",
       status = 400;
       result = { code: loginError, error_code: loginError, msg: "Mock authentication error" };
     } else if (u.pathname.endsWith("/auth/v1/user")) result = user;
-    else if (u.pathname.endsWith("/user_roles")) result = [];
+    else if (u.pathname.endsWith("/user_roles")) result = admin ? { role: "admin" } : null;
     else if (u.pathname.endsWith("/profiles"))
       result = {
         id: uid,
@@ -140,6 +143,57 @@ let loginError = "invalid_credentials",
           hidden: false,
           reply_to_id: null,
           created_at: first.created_at,
+        },
+      ];
+    if (u.pathname.endsWith("/chat_messages") && req.method() === "POST") {
+      groupSent.push(req.postDataJSON());
+      result = {};
+      if (legacyChat && Object.hasOwn(groupSent.at(-1), "reply_to_id")) {
+        status = 400;
+        result = { code: "PGRST204", message: "Could not find reply_to_id" };
+      }
+    }
+    if (
+      legacyChat &&
+      u.pathname.endsWith("/chat_messages") &&
+      req.method() !== "POST" &&
+      u.searchParams.get("select")?.includes("reply_to_id")
+    ) {
+      status = 400;
+      result = { code: "42703", message: "column chat_messages.reply_to_id does not exist" };
+    }
+    if (
+      legacyChat &&
+      ["/direct_messages", "/get_direct_inbox", "/get_chat_people"].some((path) =>
+        u.pathname.endsWith(path),
+      )
+    ) {
+      status = 404;
+      result = { code: "PGRST202", message: "Function not found" };
+    }
+    if (u.pathname.endsWith("/get_leaderboard"))
+      result = [
+        { id: peer2, name: "Ana Silva", avatar_url: null, total_points: 150, rank_position: 1 },
+        { id: uid, name: "Pessoa Teste", avatar_url: null, total_points: 100, rank_position: 2 },
+        { id: peer3, name: "Bruno Santos", avatar_url: null, total_points: 70, rank_position: 3 },
+      ];
+    if (u.pathname.endsWith("/event_settings"))
+      result = { id: 1, name: "CJAS Belém Game", finished: false };
+    if (u.pathname.endsWith("/challenges"))
+      result = [
+        {
+          id: first.id,
+          title: "Um gesto de bondade",
+          description: "Compartilhe um bom momento",
+          instructions: "Registre sua participação",
+          status: "agendado",
+          type: "normal",
+          points: 50,
+          starts_at: new Date(Date.now() - 3600000).toISOString(),
+          ends_at: new Date(Date.now() + 3600000).toISOString(),
+          requires_photo: true,
+          requires_video: false,
+          allow_resubmit: true,
         },
       ];
     if (req.method() === "HEAD")
@@ -237,6 +291,62 @@ let loginError = "invalid_credentials",
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.getByRole("tab", { name: "Privadas" }).click();
     await page.screenshot({ path: path.join(artifacts, "private-chat-desktop.png") });
+    legacyChat = true;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(base + "/chat");
+    await page.getByText("O chat geral está disponível.", { exact: false }).waitFor();
+    await page.getByText("Olá, pessoal!", { exact: true }).waitFor();
+    assert.equal(
+      await page.getByRole("button", { name: "Responder à mensagem de Ana Silva" }).count(),
+      0,
+    );
+    await page.getByRole("textbox", { name: "Escrever mensagem" }).fill("Mensagem compatível");
+    await page.getByRole("button", { name: "Enviar mensagem", exact: true }).click();
+    await page.waitForFunction(
+      () => document.querySelector('textarea[aria-label="Escrever mensagem"]').value === "",
+    );
+    assert.equal(groupSent.at(-1).body, "Mensagem compatível");
+    assert.equal(Object.hasOwn(groupSent.at(-1), "reply_to_id"), false);
+    console.log("PASS banco antigo: leitura e envio continuam sem campo de respostas");
+    await page.screenshot({ path: path.join(artifacts, "chat-legacy-mobile.png") });
+    await page.getByRole("tab", { name: "Privadas" }).click();
+    await page.getByText("As conversas privadas estão temporariamente", { exact: false }).waitFor();
+    console.log("PASS privado pendente: aviso compreensível sem expor erro técnico");
+    await page.goto(base + "/dashboard");
+    await page.getByRole("heading", { name: "Cada desafio é uma nova conquista" }).waitFor();
+    await page.getByText("Seu próximo passo", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Confirmados", exact: true }).click();
+    assert.equal(await page.getByRole("link").filter({ hasText: "🔴 Não realizado" }).count(), 0);
+    await page.getByRole("button", { name: "Todos", exact: true }).click();
+    await page.screenshot({ path: path.join(artifacts, "dashboard-mobile.png") });
+    console.log("PASS início: jornada, próximo desafio e filtros");
+    await page.goto(base + "/ranking");
+    await page.getByRole("region", { name: "Sua posição" }).waitFor();
+    await page.getByRole("textbox", { name: "Buscar no ranking" }).fill("bruno");
+    await page.getByText("Bruno Santos", { exact: true }).waitFor();
+    assert.equal(await page.getByText("Ana Silva", { exact: true }).count(), 0);
+    await page.getByRole("textbox", { name: "Buscar no ranking" }).fill("");
+    await page.screenshot({ path: path.join(artifacts, "ranking-mobile.png") });
+    await page.getByRole("button", { name: "Ativar tema escuro" }).click();
+    assert.equal(
+      await page.evaluate(() => document.documentElement.classList.contains("dark")),
+      true,
+    );
+    await page.reload();
+    await page.getByRole("button", { name: "Ativar tema claro" }).waitFor();
+    await page.getByRole("button", { name: "Ativar tema claro" }).click();
+    console.log("PASS ranking: busca, posição pessoal e tema persistente");
+    admin = true;
+    await page.goto(base + "/admin");
+    await page.getByText("A atualização do banco ainda está pendente.", { exact: true }).waitFor();
+    await page.setViewportSize({ width: 320, height: 760 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+      "Sem rolagem horizontal em 320px",
+    );
+    await page.screenshot({ path: path.join(artifacts, "admin-readiness-mobile.png") });
+    console.log("PASS administrador: diagnóstico de migração e layout de 320px");
   } catch (error) {
     await page.screenshot({ path: path.join(artifacts, "ui-test-failure.png") });
     throw error;

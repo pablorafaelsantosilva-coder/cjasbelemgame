@@ -165,7 +165,7 @@ function GeneralChat({
   const { data, isPending, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useInfiniteQuery({
       queryKey: [...CHAT_KEY, userId],
-      initialPageParam: null as string | null,
+      initialPageParam: null as { created_at: string; id: string } | null,
       queryFn: async ({ pageParam }) => {
         let query = supabase
           .from("chat_messages")
@@ -173,14 +173,42 @@ function GeneralChat({
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .limit(PAGE_SIZE);
-        if (pageParam) query = query.lt("created_at", pageParam);
+        if (pageParam)
+          query = query.or(
+            `created_at.lt.${pageParam.created_at},and(created_at.eq.${pageParam.created_at},id.lt.${pageParam.id})`,
+          );
         const { data: rows, error } = await query;
+        if (
+          error &&
+          ["42703", "PGRST204"].includes(error.code) &&
+          error.message.includes("reply_to_id")
+        ) {
+          let legacy = supabase
+            .from("chat_messages")
+            .select("id,author_id,author_name,body,hidden,created_at")
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(PAGE_SIZE);
+          if (pageParam)
+            legacy = legacy.or(
+              `created_at.lt.${pageParam.created_at},and(created_at.eq.${pageParam.created_at},id.lt.${pageParam.id})`,
+            );
+          const result = await legacy;
+          if (result.error) throw result.error;
+          return {
+            messages: (result.data ?? []).map((row) => ({ ...row, reply_to_id: null })),
+            repliesEnabled: false,
+          };
+        }
         if (error) throw error;
-        return rows ?? [];
+        return { messages: rows ?? [], repliesEnabled: true };
       },
       getNextPageParam: (lastPage) =>
-        lastPage.length === PAGE_SIZE
-          ? (lastPage[lastPage.length - 1]?.created_at ?? undefined)
+        lastPage.messages.length === PAGE_SIZE
+          ? {
+              created_at: lastPage.messages[PAGE_SIZE - 1]!.created_at,
+              id: lastPage.messages[PAGE_SIZE - 1]!.id,
+            }
           : undefined,
       enabled: !!userId && active,
       refetchInterval: live ? 60_000 : 20_000,
@@ -244,7 +272,7 @@ function GeneralChat({
       if (!userId) throw new Error("Entre na sua conta para conversar.");
       const { error } = await supabase
         .from("chat_messages")
-        .insert({ author_id: userId, body, reply_to_id: replyId });
+        .insert({ author_id: userId, body, ...(replyId ? { reply_to_id: replyId } : {}) });
       if (error) throw error;
     },
     onSuccess: (_result, { body, replyId }) => {
@@ -284,7 +312,10 @@ function GeneralChat({
     onError: () => toast.error("Não foi possível ocultar a mídia."),
   });
 
-  const messages = (data?.pages.flat() ?? []).filter((message) => !message.hidden).reverse();
+  const repliesEnabled = data?.pages[0]?.repliesEnabled ?? false;
+  const messages = (data?.pages.flatMap((page) => page.messages) ?? [])
+    .filter((message) => !message.hidden)
+    .reverse();
   const quoteIds = [
     ...new Set(messages.flatMap((m) => (m.reply_to_id ? [m.reply_to_id] : []))),
   ].sort();
@@ -402,6 +433,33 @@ function GeneralChat({
           </span>
         </header>
 
+        {data && !repliesEnabled && (
+          <div
+            role="status"
+            className="shrink-0 border-b bg-secondary/80 px-4 py-2 text-xs text-muted-foreground"
+          >
+            O chat geral está disponível. As respostas com citação serão liberadas em breve.
+          </div>
+        )}
+        {(isError || mediaError) && (
+          <div role="alert" className="flex shrink-0 items-center gap-2 border-b bg-card px-4 py-2">
+            <p className="flex-1 text-xs text-destructive">
+              {isError
+                ? "Não foi possível atualizar as mensagens."
+                : "As mídias não carregaram. As mensagens continuam disponíveis."}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (isError) void refetch();
+                if (mediaError) void refetchMedia();
+              }}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        )}
         <div className="relative min-h-0 flex-1">
           <div
             aria-hidden
@@ -441,27 +499,6 @@ function GeneralChat({
             )}
             {isPending && (
               <p className="text-center text-sm text-muted-foreground">Carregando conversa…</p>
-            )}
-            {isError && (
-              <div className="text-center">
-                <p className="text-sm text-destructive">
-                  Não foi possível abrir a conversa. Se esta atualização é recente, confirme a
-                  migração do banco com a organização.
-                </p>
-                <Button variant="ghost" size="sm" onClick={() => refetch()}>
-                  Tentar novamente
-                </Button>
-              </div>
-            )}
-            {mediaError && (
-              <div className="text-center">
-                <p className="text-sm text-destructive">
-                  Não foi possível abrir as mídias compartilhadas.
-                </p>
-                <Button variant="ghost" size="sm" onClick={() => refetchMedia()}>
-                  Tentar novamente
-                </Button>
-              </div>
             )}
             {!isPending && !isError && !mediaError && timeline.length === 0 && (
               <div className="flex min-h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
@@ -624,7 +661,7 @@ function GeneralChat({
                             {mine && <Check className="size-3" aria-label="Enviada" />}
                           </time>
                         </div>
-                        {entry.kind === "text" && (
+                        {entry.kind === "text" && repliesEnabled && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -685,7 +722,7 @@ function GeneralChat({
           onSubmit={(event) => {
             event.preventDefault();
             const text = draft.trim();
-            if (text && !send.isPending && profile?.status === "active")
+            if (text && !send.isPending && !isError && profile?.status === "active")
               send.mutate({ body: text, replyId: reply?.id ?? null });
           }}
         >
@@ -761,7 +798,7 @@ function GeneralChat({
               aria-label="Escrever mensagem"
               placeholder="Escreva sua mensagem…"
               maxLength={500}
-              rows={2}
+              rows={1}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
@@ -778,7 +815,13 @@ function GeneralChat({
               className="size-10 shrink-0 rounded-full press-in"
               aria-label="Enviar mensagem"
               title="Enviar mensagem"
-              disabled={!draft.trim() || send.isPending || !profile || profile.status !== "active"}
+              disabled={
+                !draft.trim() ||
+                send.isPending ||
+                isError ||
+                !profile ||
+                profile.status !== "active"
+              }
             >
               {send.isPending ? (
                 <LoaderCircle className="size-5 animate-spin" />

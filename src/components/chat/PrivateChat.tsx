@@ -302,8 +302,8 @@ export function PrivateChat({
               {inbox.isError && (
                 <div className="space-y-2 p-3 text-sm">
                   <p className="text-destructive">
-                    Conversas privadas indisponíveis. Se esta função acabou de ser publicada, a
-                    organização precisa concluir a atualização do banco.
+                    As conversas privadas estão temporariamente indisponíveis. Você pode continuar
+                    no chat Geral.
                   </p>
                   <Button variant="outline" onClick={() => inbox.refetch()}>
                     Tentar novamente
