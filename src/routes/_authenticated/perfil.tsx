@@ -16,7 +16,10 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
       { title: "Meu perfil — CJAS Belém Game" },
-      { name: "description", content: "Seus dados, pontos, conquistas e histórico de pontuação no evento." },
+      {
+        name: "description",
+        content: "Seus dados, pontos, conquistas e histórico de pontuação no evento.",
+      },
       { property: "og:title", content: "Meu perfil — CJAS Belém Game" },
       { property: "og:description", content: "Seus dados, pontos e conquistas no evento." },
       { property: "og:type", content: "profile" },
@@ -80,7 +83,10 @@ function ProfilePage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ name: name.trim() }).eq("id", userId!);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name: name.trim() })
+      .eq("id", userId!);
     setSaving(false);
     if (error) {
       toast.error("Não foi possível salvar.");
@@ -119,7 +125,9 @@ function ProfilePage() {
       </Card>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Conquistas</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Conquistas
+        </h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ACHIEVEMENTS.map((a) => {
             const earned = a.earned(stats);
@@ -137,22 +145,41 @@ function ProfilePage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Histórico de pontos</h2>
-        {transactions.length === 0 && <p className="text-sm text-muted-foreground">Nenhum ponto registrado ainda.</p>}
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Histórico de pontos
+        </h2>
+        {transactions.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhum ponto registrado ainda.</p>
+        )}
         {transactions.map((t) => (
           <Card key={t.id}>
             <CardContent className="flex items-center gap-3 p-3 text-sm">
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{t.description ?? "Pontuação"}</span>
-                <span className="text-xs text-muted-foreground">{formatDateTime(t.created_at)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDateTime(t.created_at)}
+                </span>
               </span>
-              <span className={cn("font-bold", t.points >= 0 ? "text-success" : "text-destructive")}>
+              <span
+                className={cn("font-bold", t.points >= 0 ? "text-success" : "text-destructive")}
+              >
                 {t.points > 0 ? `+${t.points}` : t.points}
               </span>
             </CardContent>
           </Card>
         ))}
       </section>
+      <footer className="border-t border-border pt-5 text-center text-sm text-muted-foreground">
+        Criado por:{" "}
+        <a
+          href="https://www.instagram.com/prafaelsants/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-primary underline underline-offset-4"
+        >
+          @prafaelsants
+        </a>
+      </footer>
     </div>
   );
 }

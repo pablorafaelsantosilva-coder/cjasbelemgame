@@ -10,7 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +35,10 @@ export const Route = createFileRoute("/_authenticated/admin/desafios")({
   head: () => ({
     meta: [
       { title: "Desafios — CJAS Belém Game" },
-      { name: "description", content: "Crie, agende e encerre desafios normais e relâmpago do evento." },
+      {
+        name: "description",
+        content: "Crie, agende e encerre desafios normais e relâmpago do evento.",
+      },
       { property: "og:title", content: "Desafios — CJAS Belém Game" },
       { property: "og:description", content: "Crie, agende e encerre desafios do evento." },
       { property: "og:type", content: "website" },
@@ -57,19 +66,35 @@ const emptyForm = () => ({
   allow_resubmit: true,
   audience: "",
   extra_rules: "",
-  status: "agendado" as "rascunho" | "agendado",
+  status: "agendado" as Challenge["status"],
 });
 
 function AdminChallenges() {
   const { userId } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  function editChallenge(c: Challenge) {
+    setEditingId(c.id);
+    setForm({
+      ...c,
+      audience: c.audience ?? "",
+      extra_rules: c.extra_rules ?? "",
+      starts_at: toLocalInput(new Date(c.starts_at)),
+      ends_at: toLocalInput(new Date(c.ends_at)),
+    });
+    setOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   const [form, setForm] = useState(emptyForm);
 
   const { data: challenges = [] } = useQuery({
     queryKey: ["admin-challenges"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("challenges").select("*").order("starts_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("challenges")
+        .select("*")
+        .order("starts_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Challenge[];
     },
@@ -78,8 +103,16 @@ function AdminChallenges() {
   const create = useMutation({
     mutationFn: async () => {
       if (form.title.trim().length < 3) throw new Error("Informe um título.");
-      if (new Date(form.ends_at) <= new Date(form.starts_at)) throw new Error("O encerramento deve ser depois do início.");
-      const { error } = await supabase.from("challenges").insert({
+      if (new Date(form.ends_at) <= new Date(form.starts_at))
+        throw new Error("O encerramento deve ser depois do início.");
+      if (!Number.isInteger(form.points) || form.points < 0)
+        throw new Error("Informe pontos inteiros, a partir de zero.");
+      if (
+        !Number.isFinite(new Date(form.starts_at).getTime()) ||
+        !Number.isFinite(new Date(form.ends_at).getTime())
+      )
+        throw new Error("Informe datas válidas.");
+      const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
         instructions: form.instructions.trim(),
@@ -93,14 +126,24 @@ function AdminChallenges() {
         audience: form.audience.trim() || null,
         extra_rules: form.extra_rules.trim() || null,
         status: form.status,
-        created_by: userId,
-      });
+      };
+      const query = editingId
+        ? supabase
+            .from("challenges")
+            .update({ ...payload, updated_at: new Date().toISOString() })
+            .eq("id", editingId)
+        : supabase.from("challenges").insert({ ...payload, created_by: userId });
+      const { error } = await query.select("id").single();
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Desafio salvo.");
       setForm(emptyForm());
+      setEditingId(null);
       setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["challenge"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-media-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
     },
@@ -135,22 +178,54 @@ function AdminChallenges() {
 
   return (
     <div className="space-y-4">
-      <Button onClick={() => setOpen((o) => !o)}>{open ? "Fechar formulário" : "Novo desafio"}</Button>
+      <p className="text-sm text-muted-foreground">
+        Edite desafios mesmo com o evento encerrado. Novos envios continuam bloqueados enquanto o
+        evento estiver fechado.
+      </p>
+      <Button
+        disabled={create.isPending}
+        onClick={() => {
+          setEditingId(null);
+          setForm(emptyForm());
+          setOpen((o) => !o);
+        }}
+      >
+        {open ? "Fechar formulário" : "Novo desafio"}
+      </Button>
 
       {open && (
         <Card>
           <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
+            <h2 className="font-semibold sm:col-span-2">
+              {editingId ? "Editar desafio" : "Novo desafio"}
+            </h2>
+            {editingId && (
+              <p className="text-sm text-muted-foreground sm:col-span-2">
+                Alterar os pontos afeta as próximas aprovações. Os pontos já concedidos permanecem
+                no histórico.
+              </p>
+            )}
             <div className="sm:col-span-2">
               <Label>Título</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={120} />
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                maxLength={120}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label>Descrição</Label>
-              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label>Instruções</Label>
-              <Textarea value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
+              <Textarea
+                value={form.instructions}
+                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
+              />
             </div>
             <div>
               <Label>Pontos</Label>
@@ -162,7 +237,10 @@ function AdminChallenges() {
             </div>
             <div>
               <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as "normal" | "relampago" })}>
+              <Select
+                value={form.type}
+                onValueChange={(v) => setForm({ ...form, type: v as "normal" | "relampago" })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -190,11 +268,17 @@ function AdminChallenges() {
             </div>
             <div>
               <Label>Público (opcional)</Label>
-              <Input value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} />
+              <Input
+                value={form.audience}
+                onChange={(e) => setForm({ ...form, audience: e.target.value })}
+              />
             </div>
             <div>
               <Label>Regras extras (opcional)</Label>
-              <Input value={form.extra_rules} onChange={(e) => setForm({ ...form, extra_rules: e.target.value })} />
+              <Input
+                value={form.extra_rules}
+                onChange={(e) => setForm({ ...form, extra_rules: e.target.value })}
+              />
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Switch
@@ -221,7 +305,7 @@ function AdminChallenges() {
               <Label>Situação</Label>
               <Select
                 value={form.status}
-                onValueChange={(v) => setForm({ ...form, status: v as "rascunho" | "agendado" })}
+                onValueChange={(v) => setForm({ ...form, status: v as Challenge["status"] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -229,10 +313,16 @@ function AdminChallenges() {
                 <SelectContent>
                   <SelectItem value="agendado">Agendado (publica sozinho)</SelectItem>
                   <SelectItem value="rascunho">Rascunho</SelectItem>
+                  <SelectItem value="encerrado">Encerrado</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button className="sm:col-span-2" disabled={create.isPending} onClick={() => create.mutate()}>
+            <Button
+              className="sm:col-span-2"
+              disabled={create.isPending}
+              onClick={() => create.mutate()}
+            >
               {create.isPending ? "Salvando…" : "Salvar desafio"}
             </Button>
           </CardContent>
@@ -246,7 +336,12 @@ function AdminChallenges() {
             <Card key={c.id}>
               <CardContent className="space-y-2 p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", stateClass[state])}>
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      stateClass[state],
+                    )}
+                  >
                     {stateLabel[state]}
                   </span>
                   {c.type === "relampago" && <span className="text-xs">⚡ Relâmpago</span>}
@@ -257,13 +352,28 @@ function AdminChallenges() {
                   {formatDateTime(c.starts_at)} → {formatDateTime(c.ends_at)}
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={create.isPending}
+                    onClick={() => editChallenge(c)}
+                  >
+                    Editar desafio
+                  </Button>
                   {c.status === "rascunho" && (
-                    <Button size="sm" onClick={() => setStatus.mutate({ id: c.id, status: "agendado" })}>
+                    <Button
+                      size="sm"
+                      onClick={() => setStatus.mutate({ id: c.id, status: "agendado" })}
+                    >
                       Publicar/agendar
                     </Button>
                   )}
                   {c.status === "agendado" && (
-                    <Button size="sm" variant="outline" onClick={() => setStatus.mutate({ id: c.id, status: "encerrado" })}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setStatus.mutate({ id: c.id, status: "encerrado" })}
+                    >
                       Encerrar agora
                     </Button>
                   )}
@@ -286,13 +396,15 @@ function AdminChallenges() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir "{c.title}"?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          A atividade, os envios enviados por ela e os pontos já concedidos serão apagados. Não dá para
-                          desfazer.
+                          A atividade, os envios enviados por ela e os pontos já concedidos serão
+                          apagados. Não dá para desfazer.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => remove.mutate(c.id)}>Excluir atividade</AlertDialogAction>
+                        <AlertDialogAction onClick={() => remove.mutate(c.id)}>
+                          Excluir atividade
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

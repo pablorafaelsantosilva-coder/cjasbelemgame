@@ -25,7 +25,10 @@ export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações do evento — CJAS Belém Game" },
-      { name: "description", content: "Defina nome, datas, regras, recado da organização e encerramento do evento." },
+      {
+        name: "description",
+        content: "Defina nome, datas, regras, recado da organização e encerramento do evento.",
+      },
       { property: "og:title", content: "Configurações do evento — CJAS Belém Game" },
       { property: "og:description", content: "Nome, datas, regras e encerramento do evento." },
       { property: "og:type", content: "website" },
@@ -44,6 +47,7 @@ function AdminSettings() {
     rules: "",
     org_message: "",
     finished: false,
+    max_file_mb: 100,
   });
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -51,7 +55,11 @@ function AdminSettings() {
   const { data } = useQuery({
     queryKey: ["event-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("event_settings").select("*").eq("id", 1).maybeSingle();
+      const { data, error } = await supabase
+        .from("event_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -66,10 +74,15 @@ function AdminSettings() {
       rules: data.rules,
       org_message: data.org_message,
       finished: data.finished,
+      max_file_mb: data.max_file_mb,
     });
   }, [data]);
 
   async function save() {
+    if (!Number.isInteger(form.max_file_mb) || form.max_file_mb < 1 || form.max_file_mb > 100) {
+      toast.error("O limite deve ser um número inteiro de 1 a 100 MB.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("event_settings")
@@ -80,6 +93,7 @@ function AdminSettings() {
         rules: form.rules,
         org_message: form.org_message,
         finished: form.finished,
+        max_file_mb: form.max_file_mb,
       })
       .eq("id", 1);
     setSaving(false);
@@ -106,67 +120,100 @@ function AdminSettings() {
 
   return (
     <div className="space-y-4">
-    <Card>
-      <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Label>Nome do evento</Label>
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </div>
-        <div>
-          <Label>Início</Label>
-          <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-        </div>
-        <div>
-          <Label>Fim</Label>
-          <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Regras gerais</Label>
-          <Textarea value={form.rules} onChange={(e) => setForm({ ...form, rules: e.target.value })} rows={4} />
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Recado da organização</Label>
-          <Textarea value={form.org_message} onChange={(e) => setForm({ ...form, org_message: e.target.value })} />
-        </div>
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <Switch checked={form.finished} onCheckedChange={(v) => setForm({ ...form, finished: v })} />
-          Encerrar o evento (bloqueia novos envios e mostra o ranking final)
-        </label>
-        <Button className="sm:col-span-2" onClick={save} disabled={saving}>
-          {saving ? "Salvando…" : "Salvar configurações"}
-        </Button>
-      </CardContent>
-    </Card>
+      <Card>
+        <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label>Nome do evento</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <Label>Início</Label>
+            <Input
+              type="date"
+              value={form.start_date}
+              onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Fim</Label>
+            <Input
+              type="date"
+              value={form.end_date}
+              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Regras gerais</Label>
+            <Textarea
+              value={form.rules}
+              onChange={(e) => setForm({ ...form, rules: e.target.value })}
+              rows={4}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Recado da organização</Label>
+            <Textarea
+              value={form.org_message}
+              onChange={(e) => setForm({ ...form, org_message: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-2 space-y-1">
+            <Label htmlFor="max-file-mb">Tamanho máximo por foto ou vídeo (MB)</Label>
+            <Input
+              id="max-file-mb"
+              type="number"
+              min={1}
+              max={100}
+              value={form.max_file_mb}
+              onChange={(e) => setForm({ ...form, max_file_mb: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">
+              De 1 a 100 MB por arquivo, conforme a capacidade de armazenamento do projeto.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <Switch
+              checked={form.finished}
+              onCheckedChange={(v) => setForm({ ...form, finished: v })}
+            />
+            Encerrar o evento (bloqueia novos envios e mostra o ranking final)
+          </label>
+          <Button className="sm:col-span-2" onClick={save} disabled={saving}>
+            {saving ? "Salvando…" : "Salvar configurações"}
+          </Button>
+        </CardContent>
+      </Card>
 
-    <Card className="border-destructive/40">
-      <CardContent className="space-y-3 p-4">
-        <div>
-          <p className="font-semibold text-destructive">Zerar ranking</p>
-          <p className="text-sm text-muted-foreground">
-            Apaga todo o histórico de pontos e coloca todos os participantes em zero. As atividades continuam no lugar.
-          </p>
-        </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={resetting}>
-              {resetting ? "Zerando…" : "Zerar ranking"}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Zerar a pontuação de todos?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Todos os pontos e o histórico de pontuação serão apagados. Não dá para desfazer.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Voltar</AlertDialogCancel>
-              <AlertDialogAction onClick={resetRanking}>Zerar tudo</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardContent>
-    </Card>
+      <Card className="border-destructive/40">
+        <CardContent className="space-y-3 p-4">
+          <div>
+            <p className="font-semibold text-destructive">Zerar ranking</p>
+            <p className="text-sm text-muted-foreground">
+              Apaga todo o histórico de pontos e coloca todos os participantes em zero. As
+              atividades continuam no lugar.
+            </p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={resetting}>
+                {resetting ? "Zerando…" : "Zerar ranking"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Zerar a pontuação de todos?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Todos os pontos e o histórico de pontuação serão apagados. Não dá para desfazer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={resetRanking}>Zerar tudo</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }

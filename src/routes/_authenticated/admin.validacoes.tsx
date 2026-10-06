@@ -20,7 +20,10 @@ export const Route = createFileRoute("/_authenticated/admin/validacoes")({
   head: () => ({
     meta: [
       { title: "Validações — CJAS Belém Game" },
-      { name: "description", content: "Confirme ou rejeite as comprovações enviadas pelos participantes." },
+      {
+        name: "description",
+        content: "Confirme ou rejeite as comprovações enviadas pelos participantes.",
+      },
       { property: "og:title", content: "Validações — CJAS Belém Game" },
       { property: "og:description", content: "Confirme ou rejeite comprovações enviadas." },
       { property: "og:type", content: "website" },
@@ -37,7 +40,11 @@ function ValidationsPage() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
-  const { data: rows = [], isLoading, isError } = useQuery({
+  const {
+    data: rows = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["admin-submissions", filter],
     refetchInterval: 30_000,
     queryFn: async () => {
@@ -64,7 +71,15 @@ function ValidationsPage() {
   });
 
   const review = useMutation({
-    mutationFn: async ({ id, approve, reason }: { id: string; approve: boolean; reason?: string }) => {
+    mutationFn: async ({
+      id,
+      approve,
+      reason,
+    }: {
+      id: string;
+      approve: boolean;
+      reason?: string;
+    }) => {
       const { error } = await supabase.rpc("review_submission", {
         _submission_id: id,
         _approve: approve,
@@ -84,29 +99,49 @@ function ValidationsPage() {
     <div className="space-y-4">
       <div className="flex gap-2">
         {(["submitted", "confirmed", "rejected"] as Filter[]).map((f) => (
-          <Button key={f} size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>
+          <Button
+            key={f}
+            size="sm"
+            variant={filter === f ? "default" : "outline"}
+            onClick={() => setFilter(f)}
+          >
             {f === "submitted" ? "Pendentes" : f === "confirmed" ? "Confirmadas" : "Rejeitadas"}
           </Button>
         ))}
       </div>
 
-       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      {isError && <p className="text-sm text-destructive">Não foi possível carregar as validações.</p>}
-      {!isLoading && !isError && rows.length === 0 && <p className="text-sm text-muted-foreground">Nada por aqui.</p>}
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {isError && (
+        <p className="text-sm text-destructive">Não foi possível carregar as validações.</p>
+      )}
+      {!isLoading && !isError && rows.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nada por aqui.</p>
+      )}
 
       {rows.map((row) => {
         const challenge = row.challenges as { title: string; points: number } | null;
         const profile = names[row.user_id];
-        const files = (row.submission_files ?? []) as { id: string; storage_path: string; file_type: string }[];
+        const files = (row.submission_files ?? []) as {
+          id: string;
+          storage_path: string;
+          file_type: string;
+        }[];
         const status = submissionLabel(row.status);
         return (
           <Card key={row.id}>
             <CardContent className="space-y-3 p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", status.className)}>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                    status.className,
+                  )}
+                >
                   {status.text}
                 </span>
-                <span className="text-xs text-muted-foreground">{formatDateTime(row.submitted_at)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDateTime(row.submitted_at)}
+                </span>
               </div>
               <div>
                 <p className="font-semibold">{challenge?.title ?? "Desafio"}</p>
@@ -122,7 +157,7 @@ function ValidationsPage() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     className="flex-1"
-                    disabled={review.isPending}
+                    disabled={review.isPending || files.length === 0}
                     onClick={() => review.mutate({ id: row.id, approve: true })}
                   >
                     Confirmar
@@ -145,7 +180,9 @@ function ValidationsPage() {
                   <Button
                     variant="destructive"
                     disabled={review.isPending || !reasons[row.id]}
-                    onClick={() => review.mutate({ id: row.id, approve: false, reason: reasons[row.id]! })}
+                    onClick={() =>
+                      review.mutate({ id: row.id, approve: false, reason: reasons[row.id]! })
+                    }
                   >
                     Rejeitar
                   </Button>

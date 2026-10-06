@@ -20,9 +20,15 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Entrar — CJAS Belém Game" },
-      { name: "description", content: "Acesse sua conta de participante do CJAS Belém Game ou crie uma nova." },
+      {
+        name: "description",
+        content: "Acesse sua conta de participante do CJAS Belém Game ou crie uma nova.",
+      },
       { property: "og:title", content: "Entrar — CJAS Belém Game" },
-      { property: "og:description", content: "Acesse sua conta de participante do CJAS Belém Game." },
+      {
+        property: "og:description",
+        content: "Acesse sua conta de participante do CJAS Belém Game.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -36,10 +42,22 @@ const passSchema = z.string().min(6, "A senha precisa de ao menos 6 caracteres")
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true" className="size-4">
-      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z" />
-      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9.1h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.6z" />
-      <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.8-6.1z" />
-      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.4 0-11.7-3.7-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9.1h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.6z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.4 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.8-6.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.4 0-11.7-3.7-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"
+      />
     </svg>
   );
 }
@@ -63,6 +81,33 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [recovering, setRecovering] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendAfter, setResendAfter] = useState(0);
+  const [clock, setClock] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  async function resendConfirmation() {
+    if (!verificationEmail || Date.now() < resendAfter) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: verificationEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setResendAfter(Date.now() + 60_000);
+      toast.success("Confira sua caixa de entrada e a pasta de spam.");
+    } catch {
+      toast.error("Não foi possível reenviar agora. Aguarde um minuto e tente novamente.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   useEffect(() => {
     if (session && !celebrating) navigate({ to: "/dashboard", replace: true });
@@ -71,21 +116,41 @@ function AuthPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const parsed = emailSchema.safeParse(email);
-    if (!parsed.success) { toast.error(parsed.error.issues[0]!.message); return; }
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]!.message);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: parsed.data, password });
     setLoading(false);
-    if (error) { toast.error("Não foi possível entrar. Verifique e-mail e senha."); return; }
+    if (error) {
+      if (error.code === "email_not_confirmed") {
+        setVerificationEmail(parsed.data);
+        toast.error("Confirme seu e-mail para entrar.");
+      } else {
+        toast.error("Não foi possível entrar. Verifique e-mail e senha.");
+      }
+      return;
+    }
     navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     const parsedEmail = emailSchema.safeParse(email);
-    if (!parsedEmail.success) { toast.error(parsedEmail.error.issues[0]!.message); return; }
+    if (!parsedEmail.success) {
+      toast.error(parsedEmail.error.issues[0]!.message);
+      return;
+    }
     const parsedPass = passSchema.safeParse(password);
-    if (!parsedPass.success) { toast.error(parsedPass.error.issues[0]!.message); return; }
-    if (name.trim().length < 2) { toast.error("Informe seu nome completo."); return; }
+    if (!parsedPass.success) {
+      toast.error(parsedPass.error.issues[0]!.message);
+      return;
+    }
+    if (name.trim().length < 2) {
+      toast.error("Informe seu nome completo.");
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: parsedEmail.data,
@@ -93,16 +158,18 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { name: name.trim() } },
     });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
-    setCelebrating(true);
-    if (!data.session) {
-      window.setTimeout(() => {
-        setCelebrating(false);
-        toast.success("Conta criada! Confirme o e-mail para entrar.");
-        setTab("login");
-      }, 2200);
+    if (error) {
+      toast.error(error.message);
       return;
     }
+    if (!data.session) {
+      setVerificationEmail(parsedEmail.data);
+      setPassword("");
+      setResendAfter(Date.now() + 60_000);
+      setTab("login");
+      return;
+    }
+    setCelebrating(true);
     window.setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2200);
   }
 
@@ -110,7 +177,10 @@ function AuthPage() {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    if (result.error) { toast.error("Não foi possível entrar com o Google."); return; }
+    if (result.error) {
+      toast.error("Não foi possível entrar com o Google.");
+      return;
+    }
     if (result.redirected) return;
     navigate({ to: "/dashboard", replace: true });
   }
@@ -119,20 +189,29 @@ function AuthPage() {
     const result = await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin,
     });
-    if (result.error) { toast.error("Não foi possível entrar com a Apple."); return; }
+    if (result.error) {
+      toast.error("Não foi possível entrar com a Apple.");
+      return;
+    }
     if (result.redirected) return;
     navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleRecover() {
     const parsed = emailSchema.safeParse(email);
-    if (!parsed.success) { toast.error("Informe seu e-mail para recuperar a senha."); return; }
+    if (!parsed.success) {
+      toast.error("Informe seu e-mail para recuperar a senha.");
+      return;
+    }
     setRecovering(true);
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setRecovering(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Enviamos um link de recuperação para o seu e-mail.");
   }
 
@@ -147,13 +226,56 @@ function AuthPage() {
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
           <Link to="/" aria-label="Voltar à tela inicial" className="inline-block">
-            <img src={logoAsset.url} alt="Aproxime-se de Cristo — Ele é o caminho" className="mx-auto w-52" />
+            <img
+              src={logoAsset.url}
+              alt="Aproxime-se de Cristo — Ele é o caminho"
+              className="mx-auto w-52"
+            />
           </Link>
           <h1 className="mt-3 text-2xl font-bold">CJAS Belém Game</h1>
           <p className="text-sm text-muted-foreground">Entre para ver seus desafios</p>
         </div>
 
         <div className="surface p-5">
+          {verificationEmail && (
+            <section
+              role="status"
+              aria-live="polite"
+              className="mb-5 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
+            >
+              <h2 className="font-semibold">Verifique seu e-mail</h2>
+              <p className="text-sm">
+                Abra o link de confirmação enviado para{" "}
+                <strong className="break-all">{verificationEmail}</strong> antes de entrar.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Confira também o spam. Depois de confirmar, volte aqui e faça login.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={resending || clock < resendAfter}
+                onClick={resendConfirmation}
+              >
+                {resending
+                  ? "Reenviando…"
+                  : clock < resendAfter
+                    ? `Reenviar em ${Math.ceil((resendAfter - clock) / 1000)}s`
+                    : "Reenviar confirmação"}
+              </Button>
+              <button
+                type="button"
+                className="text-sm underline"
+                onClick={() => {
+                  setVerificationEmail("");
+                  setTab("signup");
+                }}
+              >
+                Corrigir e-mail
+              </button>
+            </section>
+          )}
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -164,7 +286,13 @@ function AuthPage() {
               <form className="space-y-3 pt-4" onSubmit={handleLogin}>
                 <div className="space-y-1.5">
                   <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Senha</Label>
@@ -194,11 +322,23 @@ function AuthPage() {
               <form className="space-y-3 pt-4" onSubmit={handleSignup}>
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Nome completo</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} />
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={100}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="email2">E-mail</Label>
-                  <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input
+                    id="email2"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="pass2">Senha</Label>
