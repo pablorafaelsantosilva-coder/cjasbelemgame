@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatComposer, type ReplyDraft } from "./ChatComposer";
+import { useChatDrafts } from "@/hooks/useChatDrafts";
+import { ChatSearch } from "./ChatSearch";
 import { cn } from "@/lib/utils";
 import mountains from "@/assets/montanhas.jpg.asset.json";
 
@@ -48,7 +50,7 @@ export function PrivateChat({
   const [search, setSearch] = useState("");
   const [term, setTerm] = useState("");
   const [newConversation, setNewConversation] = useState(false);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [drafts, setDrafts] = useChatDrafts(userId);
   const [showJump, setShowJump] = useState(false);
   const [live, setLive] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -399,6 +401,14 @@ export function PrivateChat({
               </p>
             </div>
           </header>
+          <ChatSearch
+            key={peer.id}
+            live={live}
+            items={messages.map((message) => ({
+              id: `private-message-${message.id}`,
+              text: message.body,
+            }))}
+          />
           <div className="relative min-h-0 flex-1 bg-secondary/30">
             <div
               aria-hidden
@@ -575,6 +585,11 @@ export function PrivateChat({
             onChange={(text) => patchDraft({ text })}
             reply={draft.reply}
             onCancelReply={() => patchDraft({ reply: null })}
+            error={
+              send.isError && send.variables?.recipient === peer.id
+                ? "Não foi possível enviar. Seu texto foi mantido; tente novamente."
+                : undefined
+            }
             pending={send.isPending}
             disabled={profile?.status !== "active" || !recipientActive || thread.isError}
             onSend={() =>

@@ -1,5 +1,15 @@
 # Chat, autenticação e capacidade — 6 de outubro de 2026
 
+## Acabamento final do chat
+
+Geral e Privadas usam a mesma caixa de escrita, com expansão até 128 px, emojis e prévia da resposta. Em dispositivos de toque, Enter insere uma linha; o botão envia. No computador, Enter envia e Shift+Enter insere uma linha. O símbolo de confirmação significa apenas envio, sem simular leitura pelo destinatário.
+
+A busca local percorre o texto das mensagens carregadas, permite navegar entre resultados e destaca a mensagem escolhida. Não consulta conversas alheias nem promete buscar no histórico ainda não carregado. A interface informa se está recebendo atualizações em tempo real ou usando consultas periódicas.
+
+Rascunhos são mantidos em memória por conta e conversa durante a navegação, por até 30 minutos sem uso. Não são persistidos em disco: recarregar/fechar a página os perde e sair da conta limpa o cache. Uma falha de envio mantém o texto e mostra aviso persistente; o usuário pode tentar pelo mesmo botão. O teste de navegador inclui falha simulada, recuperação do envio, busca, navegação com rascunho, expansão da caixa e comportamento do Enter móvel. Também verifica limpeza do campo após enviar texto com espaços nas pontas.
+
+O código está pronto para publicação, mas a ativação das conversas privadas e respostas ainda exige aplicar `20261006033000_private_chat_and_replies.sql` no banco do projeto. A migração `20261006034000_proof_security.sql` continua necessária para as proteções das comprovações. Esses arquivos estão em `supabase/migrations`. Esta etapa não foi executada remotamente; o diagnóstico no painel administrativo ajuda a identificar recursos ausentes. Esta revisão de interface não adiciona migrações.
+
 ## Otimização de recursos
 
 - Contadores do início e do detalhe do desafio compartilham um relógio por frequência (1 segundo ou 30 segundos), suspendem os temporizadores com a página oculta e atualizam o horário ao retornar. `node tests/clock-store.mjs` verifica 20 consumidores com um temporizador, pausa, retomada e limpeza.

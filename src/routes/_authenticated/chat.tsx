@@ -2,32 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  ArrowDown,
-  Check,
-  LoaderCircle,
-  MessageCircle,
-  Send,
-  ShieldCheck,
-  Smile,
-  Trash2,
-  Reply,
-  X,
-  LockKeyhole,
-} from "lucide-react";
+import { ArrowDown, Check, MessageCircle, Trash2, Reply, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import mountains from "@/assets/montanhas.jpg.asset.json";
 import logo from "@/assets/logo-cristo.png.asset.json";
 import { getSharedChatMedia } from "@/lib/chat-media.functions";
 import { PrivateChat, type ChatPeer } from "@/components/chat/PrivateChat";
-import type { ReplyDraft } from "@/components/chat/ChatComposer";
+import { ChatComposer, type ReplyDraft } from "@/components/chat/ChatComposer";
+import { ChatSearch } from "@/components/chat/ChatSearch";
+import { useChatDrafts } from "@/hooks/useChatDrafts";
+import type { SetStateAction } from "react";
 import { MediaPreview } from "@/components/MediaPreview";
 
 export const Route = createFileRoute("/_authenticated/chat")({
@@ -46,20 +35,6 @@ export const Route = createFileRoute("/_authenticated/chat")({
 
 const PAGE_SIZE = 40;
 const CHAT_KEY = ["chat-messages"] as const;
-const EMOJI_GROUPS = [
-  {
-    name: "Expressões",
-    items: ["😀", "😂", "🥰", "😍", "😊", "😎", "🥹", "😮", "😭", "🤗", "😉", "😇"],
-  },
-  {
-    name: "Reações",
-    items: ["❤️", "🧡", "💛", "🙌", "👏", "👍", "🔥", "✨", "🎉", "💪", "🙏", "🫶"],
-  },
-  {
-    name: "Encontro",
-    items: ["⛪", "📖", "🌟", "🏆", "🎯", "📸", "🎶", "🌄", "☀️", "💬", "👋", "🤝"],
-  },
-];
 
 function ChatHub() {
   const { userId } = useSession();
@@ -149,15 +124,35 @@ function GeneralChat({
   const { userId } = useSession();
   const { data: profile } = useProfile(userId);
   const { data: isAdmin } = useIsAdmin(userId);
-  const [draft, setDraft] = useState("");
-  const [reply, setReply] = useState<ReplyDraft | null>(null);
-  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [drafts, setDrafts] = useChatDrafts(userId);
+  const draft = drafts["general"]?.text ?? "";
+  const reply = drafts["general"]?.reply ?? null;
+  function setDraft(action: SetStateAction<string>) {
+    setDrafts((old) => {
+      const current = old["general"] ?? { text: "", reply: null };
+      return {
+        ...old,
+        general: { ...current, text: typeof action === "function" ? action(current.text) : action },
+      };
+    });
+  }
+  function setReply(action: SetStateAction<ReplyDraft | null>) {
+    setDrafts((old) => {
+      const current = old["general"] ?? { text: "", reply: null };
+      return {
+        ...old,
+        general: {
+          ...current,
+          reply: typeof action === "function" ? action(current.reply) : action,
+        },
+      };
+    });
+  }
   const [showJump, setShowJump] = useState(false);
   const [live, setLive] = useState(false);
   const queryClient = useQueryClient();
   const fetchSharedMedia = useServerFn(getSharedChatMedia);
   const listRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const atBottomRef = useRef(true);
   const initialScrollRef = useRef(false);
   const restoreRef = useRef<number | null>(null);
@@ -270,9 +265,11 @@ function GeneralChat({
   const send = useMutation({
     mutationFn: async ({ body, replyId }: { body: string; replyId: string | null }) => {
       if (!userId) throw new Error("Entre na sua conta para conversar.");
-      const { error } = await supabase
-        .from("chat_messages")
-        .insert({ author_id: userId, body, ...(replyId ? { reply_to_id: replyId } : {}) });
+      const { error } = await supabase.from("chat_messages").insert({
+        author_id: userId,
+        body: body.trim(),
+        ...(replyId ? { reply_to_id: replyId } : {}),
+      });
       if (error) throw error;
     },
     onSuccess: (_result, { body, replyId }) => {
@@ -374,20 +371,6 @@ function GeneralChat({
     setShowJump(false);
   }
 
-  function addEmoji(emoji: string) {
-    const input = textareaRef.current;
-    const start = input?.selectionStart ?? draft.length;
-    const end = input?.selectionEnd ?? draft.length;
-    const next = draft.slice(0, start) + emoji + draft.slice(end);
-    if (next.length > 500) return;
-    setDraft(next);
-    setEmojiOpen(false);
-    requestAnimationFrame(() => {
-      input?.focus();
-      input?.setSelectionRange(start + emoji.length, start + emoji.length);
-    });
-  }
-
   function loadOlder() {
     const list = listRef.current;
     if (list) restoreRef.current = list.scrollHeight - list.scrollTop;
@@ -433,6 +416,16 @@ function GeneralChat({
           </span>
         </header>
 
+        <ChatSearch
+          live={live}
+          items={timeline.map((entry) => ({
+            id: `general-message-${entry.id}`,
+            text:
+              entry.kind === "text"
+                ? `${entry.item.author_name} ${entry.item.body}`
+                : entry.item.author_name,
+          }))}
+        />
         {data && !repliesEnabled && (
           <div
             role="status"
@@ -674,7 +667,6 @@ function GeneralChat({
                                 name: mine ? "Você" : entry.item.author_name,
                                 body: entry.item.body,
                               });
-                              textareaRef.current?.focus();
                             }}
                           >
                             <Reply className="size-3.5" />
@@ -717,132 +709,25 @@ function GeneralChat({
           )}
         </div>
 
-        <form
-          className="shrink-0 border-t border-border bg-card px-3 py-2.5 sm:px-5 sm:py-3"
-          onSubmit={(event) => {
-            event.preventDefault();
+        <ChatComposer
+          general
+          value={draft}
+          onChange={setDraft}
+          reply={repliesEnabled ? reply : null}
+          onCancelReply={() => setReply(null)}
+          error={
+            send.isError
+              ? "Não foi possível enviar. Seu texto foi mantido; tente novamente."
+              : undefined
+          }
+          pending={send.isPending}
+          disabled={isError || profile?.status !== "active"}
+          onSend={() => {
             const text = draft.trim();
-            if (text && !send.isPending && !isError && profile?.status === "active")
-              send.mutate({ body: text, replyId: reply?.id ?? null });
+            if (text)
+              send.mutate({ body: draft, replyId: repliesEnabled ? (reply?.id ?? null) : null });
           }}
-        >
-          {reply && (
-            <div className="mb-2 flex items-center gap-2 rounded-xl border-l-4 border-primary bg-secondary/70 p-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-primary">
-                  Respondendo a {reply.name}
-                </p>
-                <p className="line-clamp-2 break-words text-xs text-muted-foreground">
-                  {reply.body}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Cancelar resposta"
-                onClick={() => setReply(null)}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-          )}
-          <div className="flex items-end gap-1.5 rounded-2xl border border-input bg-background p-1.5 transition-colors focus-within:border-ring focus-within:ring-1 focus-within:ring-ring sm:gap-2">
-            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-10 shrink-0 text-muted-foreground hover:text-primary"
-                  aria-label="Escolher emoji"
-                  title="Escolher emoji"
-                >
-                  <Smile className="size-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                side="top"
-                className="w-[min(19rem,calc(100vw-2rem))] p-3"
-              >
-                <div className="max-h-64 space-y-3 overflow-y-auto">
-                  {EMOJI_GROUPS.map((group) => (
-                    <div key={group.name}>
-                      <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
-                        {group.name}
-                      </p>
-                      <div className="grid grid-cols-6 gap-1">
-                        {group.items.map((emoji) => (
-                          <Button
-                            key={emoji}
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-10 text-xl"
-                            title={emoji}
-                            aria-label={`Inserir emoji ${emoji}`}
-                            onClick={() => addEmoji(emoji)}
-                          >
-                            {emoji}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Textarea
-              ref={textareaRef}
-              aria-label="Escrever mensagem"
-              placeholder="Escreva sua mensagem…"
-              maxLength={500}
-              rows={1}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-              className="min-h-10 max-h-32 flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-base shadow-none focus-visible:ring-0 md:text-sm"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="size-10 shrink-0 rounded-full press-in"
-              aria-label="Enviar mensagem"
-              title="Enviar mensagem"
-              disabled={
-                !draft.trim() ||
-                send.isPending ||
-                isError ||
-                !profile ||
-                profile.status !== "active"
-              }
-            >
-              {send.isPending ? (
-                <LoaderCircle className="size-5 animate-spin" />
-              ) : (
-                <Send className="size-5" />
-              )}
-            </Button>
-          </div>
-          <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-            <span className="flex min-w-0 items-center gap-1.5 truncate">
-              <ShieldCheck className="size-3.5 shrink-0" />
-              Conversa moderada pela organização
-            </span>
-            <span
-              aria-label={`${draft.length} de 500 caracteres`}
-              className="shrink-0 tabular-nums"
-            >
-              {draft.length}/500
-            </span>
-          </div>
-        </form>
+        />
       </div>
     </div>
   );

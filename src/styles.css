@@ -432,3 +432,10 @@
     display: none;
   }
 }
+
+/* Temporary highlight after navigating to a conversation search result. */
+.chat-search-match {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 0.75rem;
+}

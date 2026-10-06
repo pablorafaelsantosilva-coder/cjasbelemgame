@@ -51,6 +51,7 @@ const first = {
   reply_to_id: null,
   created_at: "2026-10-06T01:00:00Z",
 };
+let failDirect = false;
 let legacyChat = false,
   admin = false,
   groupSent = [];
@@ -118,8 +119,13 @@ let loginError = "invalid_credentials",
     else if (u.pathname.endsWith("/direct_messages")) {
       if (req.method() === "POST") {
         const payload = req.postDataJSON();
-        sent.push(payload);
-        result = {};
+        if (failDirect) {
+          status = 400;
+          result = { code: "P0001", message: "Falha simulada de envio" };
+        } else {
+          sent.push(payload);
+          result = {};
+        }
       } else
         result = u.searchParams.get("sender_id")?.includes(peer3)
           ? []
@@ -263,7 +269,15 @@ let loginError = "invalid_credentials",
     await page.getByRole("button", { name: /Ana Silva/ }).click();
     await page.getByRole("button", { name: "Responder à mensagem: Oi! Vamos ao desafio?" }).click();
     await page.getByText("Respondendo a Ana Silva").waitFor();
+    failDirect = true;
     await page.getByRole("textbox", { name: "Mensagem privada" }).fill("Vamos sim!");
+    await page.getByRole("button", { name: "Enviar mensagem privada" }).click();
+    await page.getByRole("alert").filter({ hasText: "Seu texto foi mantido" }).waitFor();
+    assert.equal(
+      await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue(),
+      "Vamos sim!",
+    );
+    failDirect = false;
     await page.getByRole("button", { name: "Enviar mensagem privada" }).click();
     await page.getByText("Vamos sim!", { exact: true }).waitFor();
     assert.equal(sent[0].reply_to_id, first.id);
@@ -291,6 +305,46 @@ let loginError = "invalid_credentials",
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.getByRole("tab", { name: "Privadas" }).click();
     await page.screenshot({ path: path.join(artifacts, "private-chat-desktop.png") });
+    await page.getByRole("button", { name: "Buscar nesta conversa" }).click();
+    await page.getByRole("textbox", { name: "Buscar nas mensagens carregadas" }).fill("vamos");
+    await page.getByRole("button", { name: "Mostrar resultado", exact: true }).click();
+    assert.equal(await page.locator(".chat-search-match").count(), 1);
+    await page.getByRole("button", { name: "Fechar busca" }).click();
+    await page.getByRole("link", { name: "Início", exact: true }).click();
+    await page.getByRole("heading", { name: "Cada desafio é uma nova conquista" }).waitFor();
+    await page.getByRole("link", { name: "Chat", exact: true }).click();
+    await page.getByRole("tab", { name: "Privadas" }).click();
+    await page.getByRole("button", { name: /Ana Silva/ }).click();
+    assert.equal(
+      await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue(),
+      "Rascunho da Ana",
+    );
+    await page
+      .getByRole("textbox", { name: "Mensagem privada" })
+      .fill("Uma linha\nOutra linha\nTerceira linha\nQuarta linha");
+    assert.ok(
+      (await page
+        .getByRole("textbox", { name: "Mensagem privada" })
+        .evaluate((el) => el.clientHeight)) > 40,
+    );
+    await page.getByRole("textbox", { name: "Mensagem privada" }).fill("Rascunho da Ana");
+    await page.evaluate(() => {
+      const original = window.matchMedia.bind(window);
+      window.matchMedia = (query) => {
+        const result = original(query);
+        if (query === "(pointer: coarse)")
+          Object.defineProperty(result, "matches", { value: true });
+        return result;
+      };
+    });
+    const beforeEnter = sent.length;
+    await page.getByRole("textbox", { name: "Mensagem privada" }).press("End");
+    await page.getByRole("textbox", { name: "Mensagem privada" }).press("Enter");
+    assert.equal(sent.length, beforeEnter);
+    assert.ok(
+      (await page.getByRole("textbox", { name: "Mensagem privada" }).inputValue()).includes("\n"),
+    );
+    console.log("PASS busca, rascunho após navegação, caixa expansível e Enter móvel sem envio");
     legacyChat = true;
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(base + "/chat");
@@ -300,7 +354,7 @@ let loginError = "invalid_credentials",
       await page.getByRole("button", { name: "Responder à mensagem de Ana Silva" }).count(),
       0,
     );
-    await page.getByRole("textbox", { name: "Escrever mensagem" }).fill("Mensagem compatível");
+    await page.getByRole("textbox", { name: "Escrever mensagem" }).fill(" Mensagem compatível ");
     await page.getByRole("button", { name: "Enviar mensagem", exact: true }).click();
     await page.waitForFunction(
       () => document.querySelector('textarea[aria-label="Escrever mensagem"]').value === "",
