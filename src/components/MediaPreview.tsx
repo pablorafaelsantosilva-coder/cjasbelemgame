@@ -67,7 +67,7 @@ export function MediaPreview({
           src={url}
           controls
           playsInline
-          preload="metadata"
+          preload="none"
           onError={() => setFailedUrl(url)}
           className={cn("rounded-lg bg-black object-contain", className)}
         />
@@ -82,6 +82,7 @@ export function MediaPreview({
             src={url}
             alt="Comprovação enviada"
             loading="lazy"
+            decoding="async"
             onError={() => setFailedUrl(url)}
             className={cn("rounded-lg bg-muted object-contain", className)}
           />

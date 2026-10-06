@@ -13,7 +13,7 @@ export function MediaGallery({
   columns?: string;
 }) {
   const { userId } = useSession();
-  const paths = files.map((f) => f.storage_path);
+  const paths = [...new Set(files.map((f) => f.storage_path))].sort();
   const {
     data: urls = {},
     isFetching,
@@ -23,9 +23,15 @@ export function MediaGallery({
     queryKey: ["signed-batch", userId, paths.join("|")],
     queryFn: () => signedUrls(paths),
     enabled: !!userId && paths.length > 0,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 10 * 60 * 1000,
-    refetchOnWindowFocus: "always",
+    staleTime: 45 * 60 * 1000,
+    // Schedule from the actual signing time, not from the latest component mount.
+    // The URLs last one hour; renew with a fifteen-minute safety margin.
+    refetchInterval: (query) =>
+      query.state.dataUpdatedAt && query.state.status !== "error"
+        ? Math.max(30_000, 45 * 60 * 1000 - (Date.now() - query.state.dataUpdatedAt))
+        : false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
   return (
     <div className={`grid ${columns}`}>

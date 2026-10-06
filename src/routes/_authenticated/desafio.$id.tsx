@@ -1,3 +1,4 @@
+import { useNow } from "@/hooks/useNow";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,12 +55,7 @@ function ChallengeDetail() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [shareInChat, setShareInChat] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow();
 
   const {
     data: challenge,
@@ -83,7 +79,7 @@ function ChallengeDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_settings")
-        .select("finished,max_file_mb")
+        .select("*")
         .eq("id", 1)
         .single();
       if (error) throw error;
@@ -438,10 +434,6 @@ function ChallengeDetail() {
 }
 
 function TimeRemaining({ at }: { at: string }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(1000);
   return <span>{countdown(at, now)}</span>;
 }

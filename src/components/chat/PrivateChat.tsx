@@ -148,12 +148,24 @@ export function PrivateChat({
   useEffect(() => {
     if (!userId || !active) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const refresh = () => {
+    const changedPeers = new Set<string>();
+    const refresh = (payload: { new: Record<string, unknown> }) => {
+      const other =
+        payload.new["sender_id"] === userId
+          ? payload.new["recipient_id"]
+          : payload.new["sender_id"];
+      if (typeof other === "string") changedPeers.add(other);
       if (timer) return;
       timer = setTimeout(() => {
         timer = undefined;
         void queryClient.invalidateQueries({ queryKey: ["direct-inbox", userId] });
-        void queryClient.invalidateQueries({ queryKey: ["direct-messages", userId] });
+        for (const peerId of changedPeers) {
+          void queryClient.invalidateQueries({
+            queryKey: ["direct-messages", userId, peerId],
+            exact: true,
+          });
+        }
+        changedPeers.clear();
       }, 250);
     };
     const channel = supabase

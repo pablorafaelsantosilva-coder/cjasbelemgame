@@ -1,5 +1,15 @@
 # Chat, autenticação e capacidade — 6 de outubro de 2026
 
+## Otimização de recursos
+
+- Contadores do início e do detalhe do desafio compartilham um relógio por frequência (1 segundo ou 30 segundos), suspendem os temporizadores com a página oculta e atualizam o horário ao retornar. `node tests/clock-store.mjs` verifica 20 consumidores com um temporizador, pausa, retomada e limpeza.
+- Galerias normalizam os caminhos para reaproveitar a mesma consulta mesmo quando a ordem dos arquivos muda. Links privados de uma hora são renovados após 45 minutos a partir da geração, com margem de 15 minutos; voltar o foco não renova links ainda recentes. A tentativa manual continua disponível. Links compartilhados no chat mantêm sua política separada de 600 segundos.
+- Vídeos nas listas usam `preload="none"`, deixando o download inicial para o play. A visualização ampliada mantém metadados. Fotos usam decodificação assíncrona e carregamento sob demanda.
+- Eventos de mensagens privadas invalidam somente o histórico do interlocutor envolvido e a caixa de entrada, evitando recarregar a conversa aberta por mensagens de outras pessoas.
+- A consulta de configurações no detalhe do desafio usa a mesma estrutura completa do início, evitando sobrescrever o cache compartilhado com campos parciais.
+
+As mudanças não requerem nova migração. Os 13 fluxos de navegador passaram com respostas de rede simuladas, além das verificações de tipos e geração de produção. O teste do relógio demonstra redução de temporizadores; não houve medição de latência ou teste de carga no site publicado. Não é uma certificação para 500 acessos.
+
 ## Correção após o relato da tela de mensagens
 
 O erro relatado é compatível com a leitura de `reply_to_id` antes de aplicar a migração. A interface agora reconhece especificamente o erro de coluna ausente (`42703`/`PGRST204`) e consulta as colunas anteriores mantendo a mesma autenticação e RLS. Outros erros continuam aparecendo como falhas, sem disfarçar problemas de permissão ou conexão. Mensagens sem citação não enviam o campo novo, permitindo continuar o chat geral no banco anterior. Responder fica indisponível enquanto o campo não existe; não há simulação de conversa privada sem proteção de banco.
