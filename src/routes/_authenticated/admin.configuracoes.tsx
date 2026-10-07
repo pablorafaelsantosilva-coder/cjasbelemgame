@@ -80,7 +80,7 @@ function AdminSettings() {
 
   async function save() {
     if (!Number.isInteger(form.max_file_mb) || form.max_file_mb < 1 || form.max_file_mb > 100) {
-      toast.error("O limite deve ser um número inteiro de 1 a 100 MB.");
+      toast.error("O limite deve ser de 1 a 100 MB.");
       return;
     }
     setSaving(true);
@@ -143,6 +143,20 @@ function AdminSettings() {
             />
           </div>
           <div className="sm:col-span-2">
+            <Label htmlFor="max-file-mb">Tamanho máximo por arquivo (MB)</Label>
+            <Input
+              id="max-file-mb"
+              type="number"
+              min={1}
+              max={100}
+              value={form.max_file_mb}
+              onChange={(e) => setForm({ ...form, max_file_mb: Number(e.target.value) })}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Até 100 MB, conforme o limite disponível no armazenamento do projeto.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
             <Label>Regras gerais</Label>
             <Textarea
               value={form.rules}
@@ -156,20 +170,6 @@ function AdminSettings() {
               value={form.org_message}
               onChange={(e) => setForm({ ...form, org_message: e.target.value })}
             />
-          </div>
-          <div className="sm:col-span-2 space-y-1">
-            <Label htmlFor="max-file-mb">Tamanho máximo por foto ou vídeo (MB)</Label>
-            <Input
-              id="max-file-mb"
-              type="number"
-              min={1}
-              max={100}
-              value={form.max_file_mb}
-              onChange={(e) => setForm({ ...form, max_file_mb: Number(e.target.value) })}
-            />
-            <p className="text-xs text-muted-foreground">
-              De 1 a 100 MB por arquivo, conforme a capacidade de armazenamento do projeto.
-            </p>
           </div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <Switch

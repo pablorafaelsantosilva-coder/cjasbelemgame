@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSession } from "@/hooks/useAuth";
 import { signedUrls } from "@/lib/media";
+import { useSession } from "@/hooks/useAuth";
 import { MediaPreview } from "@/components/MediaPreview";
 
 type FileItem = { id: string; storage_path: string; file_type: string };
-
 export function MediaGallery({
   files,
   columns = "grid-cols-2 gap-2 sm:grid-cols-3",
@@ -13,35 +12,32 @@ export function MediaGallery({
   columns?: string;
 }) {
   const { userId } = useSession();
-  const paths = [...new Set(files.map((f) => f.storage_path))].sort();
+  const paths = files.map((f) => f.storage_path);
   const {
     data: urls = {},
-    isFetching,
     isError,
+    isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["signed-batch", userId, paths.join("|")],
+    queryKey: ["signed-batch", userId, paths],
     queryFn: () => signedUrls(paths),
     enabled: !!userId && paths.length > 0,
-    staleTime: 45 * 60 * 1000,
-    // Schedule from the actual signing time, not from the latest component mount.
-    // The URLs last one hour; renew with a fifteen-minute safety margin.
-    refetchInterval: (query) =>
-      query.state.dataUpdatedAt && query.state.status !== "error"
-        ? Math.max(30_000, 45 * 60 * 1000 - (Date.now() - query.state.dataUpdatedAt))
-        : false,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: "always",
+    retry: 1,
   });
   return (
     <div className={`grid ${columns}`}>
       {isError && (
-        <p className="col-span-full text-sm text-destructive">
-          Falha ao carregar os links. Tente novamente abaixo.
+        <p role="alert" className="col-span-full text-sm text-destructive">
+          Falha ao carregar as mídias. Tente novamente.
         </p>
       )}
       {files.length === 0 && (
-        <p className="col-span-full text-sm text-muted-foreground">Nenhum arquivo anexado.</p>
+        <p className="col-span-full text-sm text-muted-foreground">
+          Nenhum arquivo anexado a este envio.
+        </p>
       )}
       {files.map((f) => (
         <MediaPreview
@@ -49,8 +45,10 @@ export function MediaGallery({
           path={f.storage_path}
           fileType={f.file_type}
           url={urls[f.storage_path]}
-          loading={isFetching && !urls[f.storage_path]}
-          onRetry={() => refetch()}
+          loading={isFetching}
+          onRetry={() => {
+            void refetch();
+          }}
           className="aspect-square w-full"
         />
       ))}

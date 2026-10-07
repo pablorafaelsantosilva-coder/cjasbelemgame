@@ -8,6 +8,13 @@
       "when": 1791158809681,
       "tag": "0000_consented_challenge_media_in_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791331367084,
+      "tag": "0001_proof_upload_limit_default",
+      "breakpoints": true
     }
   ]
 }
