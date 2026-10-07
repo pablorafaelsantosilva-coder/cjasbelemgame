@@ -9,6 +9,7 @@ export interface Challenge {
   instructions: string;
   points: number;
   first_photo_bonus?: number;
+  share_photos_in_chat?: boolean;
   type: ChallengeType;
   starts_at: string;
   ends_at: string;

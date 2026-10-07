@@ -33,7 +33,12 @@ try {
     await db.exec(sql);
   }
 
-  for (const name of ["0005_challenge_reminders", "0006_first_photo_bonus"])
+  for (const name of [
+    "0000_consented_challenge_media_in_chat",
+    "0005_challenge_reminders",
+    "0006_first_photo_bonus",
+    "0007_challenge_chat_photos",
+  ])
     await db.exec(
       await readFile(new URL(`../drizzle/migrations/${name}.sql`, import.meta.url), "utf8"),
     );
@@ -43,7 +48,7 @@ try {
       `user${n}@example.com`,
     ]);
   await db.query("INSERT INTO public.user_roles(user_id,role) VALUES($1,'admin')", [id(4)]);
-  for (let n = 10; n <= 16; n++)
+  for (let n = 10; n <= 17; n++)
     await db.query(
       "INSERT INTO public.challenges(id,title,starts_at,ends_at,status,requires_photo,requires_video,points) VALUES($1,'Teste',now()-interval '1 hour',now()+interval '5 minutes','agendado',true,false,100)",
       [id(n)],
@@ -229,6 +234,50 @@ try {
     await review(62, true);
     assert.equal((await bonuses(16))[0].user_id, id(2));
   });
+  await check(
+    "fotos no chat exigem opção do desafio, consentimento e aprovação; vídeos ficam privados",
+    async () => {
+      await submit(1, 17, 71);
+      await assert.rejects(
+        db.query("INSERT INTO public.submission_chat_shares(submission_id,user_id) VALUES($1,$2)", [
+          id(71),
+          id(1),
+        ]),
+        /row-level/,
+      );
+      await user(4);
+      await db.query("UPDATE public.challenges SET share_photos_in_chat=true WHERE id=$1", [
+        id(17),
+      ]);
+      await user(1);
+      await db.query(
+        "INSERT INTO public.submission_chat_shares(submission_id,user_id) VALUES($1,$2)",
+        [id(71), id(1)],
+      );
+      const video = `${id(1)}/${id(71)}/video.mp4`;
+      await db.query("INSERT INTO storage.objects(bucket_id,name) VALUES('proofs',$1)", [video]);
+      await db.query(
+        "INSERT INTO public.submission_files(submission_id,user_id,storage_path,file_type,file_size) VALUES($1,$2,$3,'video/mp4',10)",
+        [id(71), id(1), video],
+      );
+      await user(3);
+      assert.equal((await db.query("SELECT * FROM public.get_chat_shared_media()")).rows.length, 0);
+      await review(71, true);
+      await submit(2, 17, 72);
+      await review(72, true);
+      await user(3);
+      const visible = (await db.query("SELECT * FROM public.get_chat_shared_media()")).rows;
+      assert.equal(visible.length, 1);
+      assert.equal(visible[0].submission_id, id(71));
+      assert.deepEqual(visible[0].file_types, ["image/jpeg"]);
+      await user(4);
+      await db.query("UPDATE public.challenges SET share_photos_in_chat=false WHERE id=$1", [
+        id(17),
+      ]);
+      await user(3);
+      assert.equal((await db.query("SELECT * FROM public.get_chat_shared_media()")).rows.length, 0);
+    },
+  );
   console.log(`${passed} cenários aprovados.`);
 } finally {
   await db.close();

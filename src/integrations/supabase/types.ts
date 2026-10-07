@@ -63,6 +63,7 @@ export type Database = {
           id: string
           instructions: string
           max_participants: number | null
+          share_photos_in_chat: boolean
           first_photo_bonus: number
           points: number
           requires_photo: boolean
@@ -84,6 +85,7 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
+          share_photos_in_chat?: boolean
           first_photo_bonus?: number
           points?: number
           requires_photo?: boolean
@@ -105,6 +107,7 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
+          share_photos_in_chat?: boolean
           first_photo_bonus?: number
           points?: number
           requires_photo?: boolean

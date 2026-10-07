@@ -50,6 +50,13 @@
       "when": 1791411328605,
       "tag": "0006_first_photo_bonus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791411901044,
+      "tag": "0007_challenge_chat_photos",
+      "breakpoints": true
     }
   ]
 }

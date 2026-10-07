@@ -157,3 +157,17 @@ Validação: `tests/challenge-features.mjs` aplica as migrações e verifica RLS
 entrega única, cancelamento, encerramento, ordem de aprovação invertida, rejeição,
 reserva vazia, relógio adulterado e bloqueio de aprovação sem arquivos. Executar
 com `PGLITE_MODULE` apontando para uma instalação de `@electric-sql/pglite`.
+
+### Opção de fotos no chat por desafio
+
+A migração `0007_challenge_chat_photos.sql` adiciona `share_photos_in_chat`.
+O painel de criação/edição oferece **Mostrar fotos deste desafio no chat geral**,
+inicialmente desligado nos novos desafios. Desafios existentes preservam a
+permissão anterior, que já exigia autorização individual e aprovação. O participante
+vê a opção de autorizar suas fotos somente se o desafio permitir. A política de
+inserção rejeita autorizações quando a opção está desligada. A RPC de leitura
+exige simultaneamente opção ligada, autorização do autor, aprovação e ausência de
+ocultação pela organização; retorna somente imagens, sem vídeos. Desligar impede
+novas leituras pelo chat. Fotos já carregadas podem permanecer na tela até a
+atualização e URLs assinadas anteriormente continuam válidas por até dez minutos.
+Os arquivos de comprovação permanecem em armazenamento privado.
