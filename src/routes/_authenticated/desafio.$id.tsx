@@ -1,3 +1,4 @@
+import { ChallengeActions } from "@/components/ChallengeActions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -122,7 +123,11 @@ function ChallengeDetail() {
     },
   });
 
-  const state = challenge ? liveState(challenge, new Date(now)) : "agendado";
+  const state = settings?.finished
+    ? "encerrado"
+    : challenge
+      ? liveState(challenge, new Date(now))
+      : "agendado";
   const status = submissionLabel(submission?.status);
   const canSubmit =
     !!challenge &&
@@ -289,6 +294,7 @@ function ChallengeDetail() {
           </span>
         </div>
         <h1 className="text-2xl font-bold">{challenge.title}</h1>
+        <ChallengeActions challenge={challenge} finished={settings?.finished ?? true} />
         <p className="text-sm text-primary-foreground/80">{challenge.description}</p>
         <p className="text-sm">
           <span className="font-semibold">+{challenge.points} pontos</span> ·{" "}

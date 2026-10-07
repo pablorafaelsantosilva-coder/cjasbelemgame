@@ -113,3 +113,47 @@ Ativação: aplicar **drizzle/migrations/0004_admin_private_chat_review.sql** pe
 O aviso aos participantes aparece em texto de 10 px, abaixo do cabeçalho: “Os administradores podem ter acesso às conversas privadas em casos de violação das regras.” A justificativa é declarada pelo administrador, não há verificação automática de que ocorreu uma violação; a auditoria permite revisar o uso.
 
 `tests/admin-chat-permissions.mjs` verifica isolamento da função privilegiada, bloqueio persistente, justificativa e auditoria em PostgreSQL isolado. `tests/admin-chat-ui.cjs` verifica acesso de participante/administrador e falha fechada com respostas simuladas, sem usuários ou consultas reais.
+
+## Desafios: lembretes, links e primeira foto
+
+Aplicar, em ordem, `drizzle/migrations/0005_challenge_reminders.sql` e
+`drizzle/migrations/0006_first_photo_bonus.sql` pelo fluxo de migrações do projeto.
+Não reaplicar os SQLs manualmente se o journal já os executou. As migrações foram
+validadas em banco de teste; sua aplicação no ambiente Lovable depende do deploy.
+
+- Os desafios abertos aparecem antes dos programados e encerrados, com borda,
+  selo **Aberto agora** e os prazos mais próximos primeiro. O encerramento do evento
+  remove o destaque de aberto. Nenhum prazo foi estendido.
+- **Compartilhar desafio** abre o compartilhamento nativo quando disponível; usa
+  cópia do link como alternativa e exibe um campo selecionável se a cópia falhar.
+  Compartilha somente a rota do desafio, sem credenciais ou arquivos privados.
+  O acesso continua autenticado e o login preserva o UUID do desafio de destino.
+  Para confirmação de e-mail/OAuth, a lista de redirects permitidos deve incluir
+  a rota `/auth` do domínio publicado, inclusive seu parâmetro `challenge`.
+- **Lembrar-me** salva a preferência por conta no banco. Desafios futuros geram
+  aviso quando abrem; os já abertos, nos últimos dez minutos. A consulta do sino,
+  a cada minuto enquanto o site está ativo e ao retornar ao site, entrega o aviso
+  uma única vez. O usuário precisa abrir o site antes do encerramento. Não é push,
+  cron, e-mail nem garantia de aviso com o navegador fechado. A data atual do
+  desafio é consultada na entrega, respeitando remarcação/cancelamento/fechamento.
+  RLS protege a leitura e RPCs derivam a identidade de `auth.uid()`; não recebem
+  um usuário de destino informado pelo cliente. `FOR UPDATE SKIP LOCKED` impede
+  entrega duplicada entre abas. Falta de migração mantém o sino antigo e apresenta
+  indisponibilidade no botão, sem fingir que salvou o lembrete.
+- **Bônus pela primeira foto válida**: valor inteiro editável de 0 a 10.000 no painel
+  de desafios; 0 desativa. Novos desafios sugerem +10; existentes permanecem com 0
+  até decisão da organização, para não alterar silenciosamente regras anunciadas.
+  A ordem usa o recebimento do arquivo no servidor, não o relógio do participante
+  nem a ordem de aprovação. Uma submissão vazia não reserva a primeira colocação.
+  Em reenvios vale o horário do novo envio, quando posterior à foto. Empates usam
+  o UUID da submissão como desempate determinístico. Fotos anteriores pendentes
+  precisam ser avaliadas: se aprovadas, ganham; se rejeitadas, liberam o próximo
+  envio válido. O bônus é único por desafio, registrado em transação de pontos,
+  notificação e auditoria. Pontos normais continuam dependendo de aprovação manual
+  e de todas as comprovações exigidas. Alterar o valor após concedido não recalcula
+  o bônus já pago; correções seguem o ajuste de pontos administrativo.
+
+Validação: `tests/challenge-features.mjs` aplica as migrações e verifica RLS,
+entrega única, cancelamento, encerramento, ordem de aprovação invertida, rejeição,
+reserva vazia, relógio adulterado e bloqueio de aprovação sem arquivos. Executar
+com `PGLITE_MODULE` apontando para uma instalação de `@electric-sql/pglite`.
