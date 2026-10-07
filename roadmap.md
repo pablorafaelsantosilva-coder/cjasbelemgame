@@ -15,4 +15,4 @@
 - [x] Aplicar as montanhas do tema na conversa e aprimorar os detalhes visuais do chat
 - [x] Perguntar no envio sobre compartilhamento e exibir no chat apenas mídias aprovadas com consentimento
 - [x] Integrar com segurança as melhorias do pacote atualizado sem perder recursos recentes
-- [ ] Aplicar migrações de conversa privada/respostas e segurança das comprovações (aguardando os arquivos, não incluídos no pacote)
+- [x] Aplicar migrações de conversa privada/respostas e segurança das comprovações
