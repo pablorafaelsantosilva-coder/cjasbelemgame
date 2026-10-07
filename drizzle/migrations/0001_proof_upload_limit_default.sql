@@ -1,0 +1,1 @@
+ALTER TABLE public.event_settings ALTER COLUMN max_file_mb SET DEFAULT 100;

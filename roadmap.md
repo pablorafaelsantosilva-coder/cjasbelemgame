@@ -14,5 +14,5 @@
 - [x] Revisar envio e exibição de fotos e vídeos, e verificar os principais fluxos do site
 - [x] Aplicar as montanhas do tema na conversa e aprimorar os detalhes visuais do chat
 - [x] Perguntar no envio sobre compartilhamento e exibir no chat apenas mídias aprovadas com consentimento
-- [ ] Integrar com segurança as melhorias do pacote atualizado sem perder recursos recentes
-- [ ] Aplicar migrações de conversa privada/respostas e segurança das comprovações (aguardando os arquivos, não incluídos no pacote)
+- [x] Integrar com segurança as melhorias do pacote atualizado sem perder recursos recentes
+- [x] Aplicar migrações de conversa privada/respostas e segurança das comprovações

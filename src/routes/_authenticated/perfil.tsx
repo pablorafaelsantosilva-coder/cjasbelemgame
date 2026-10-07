@@ -169,13 +169,13 @@ function ProfilePage() {
           </Card>
         ))}
       </section>
-      <footer className="border-t border-border pt-5 text-center text-sm text-muted-foreground">
+      <footer className="border-t pt-5 text-center text-sm text-muted-foreground">
         Criado por:{" "}
         <a
           href="https://www.instagram.com/prafaelsants/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-primary underline underline-offset-4"
+          className="font-semibold text-primary underline underline-offset-4"
         >
           @prafaelsants
         </a>

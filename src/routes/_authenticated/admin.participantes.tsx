@@ -42,7 +42,7 @@ function AdminParticipants() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,name,email,total_points,status")
+        .select("id,name,email,total_points,status,created_at")
         .order("total_points", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -70,32 +70,33 @@ function AdminParticipants() {
     .filter(
       (p) =>
         `${p.name} ${p.email ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()) &&
-        (statusFilter === "all" ||
-          (statusFilter === "active" ? p.status === "active" : p.status !== "active")),
+        (statusFilter === "all" || p.status === statusFilter),
     )
     .sort((a, b) =>
       sort === "points"
-        ? b.total_points - a.total_points || a.name.localeCompare(b.name, "pt-BR")
-        : a.name.localeCompare(b.name, "pt-BR"),
+        ? b.total_points - a.total_points
+        : sort === "recent"
+          ? b.created_at.localeCompare(a.created_at)
+          : a.name.localeCompare(b.name, "pt-BR"),
     );
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
+  const visible = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   return (
     <div className="space-y-3">
       <h2 className="text-xl font-semibold">Usuários do evento</h2>
-      <div className="grid grid-cols-3 gap-2 text-center text-sm">
-        <Card className="p-3">
-          <strong className="block text-xl">{people.length}</strong>Cadastrados
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <strong>{people.length}</strong>
+            <p className="text-sm">Cadastrados</p>
+          </CardContent>
         </Card>
-        <Card className="p-3">
-          <strong className="block text-xl">
-            {people.filter((p) => p.status === "active").length}
-          </strong>
-          Ativos
-        </Card>
-        <Card className="p-3">
-          <strong className="block text-xl">{filtered.length}</strong>Encontrados
+        <Card>
+          <CardContent className="p-4">
+            <strong>{people.filter((p) => p.status === "active").length}</strong>
+            <p className="text-sm">Ativos</p>
+          </CardContent>
         </Card>
       </div>
       <Input
@@ -109,24 +110,27 @@ function AdminParticipants() {
       />
       <div className="flex flex-wrap gap-3">
         <label className="text-sm">
-          Status{" "}
+          Situação{" "}
           <select
-            className="rounded-md border bg-background p-2"
+            className="rounded border bg-background p-2"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(0);
             }}
           >
-            <option value="all">Todos</option>
-            <option value="active">Ativos</option>
-            <option value="inactive">Inativos</option>
+            <option value="all">Todas</option>
+            {[...new Set(people.map((p) => p.status))].map((s) => (
+              <option key={s} value={s}>
+                {s === "active" ? "Ativo" : s === "blocked" ? "Bloqueado" : s}
+              </option>
+            ))}
           </select>
         </label>
         <label className="text-sm">
           Ordenar{" "}
           <select
-            className="rounded-md border bg-background p-2"
+            className="rounded border bg-background p-2"
             value={sort}
             onChange={(e) => {
               setSort(e.target.value);
@@ -134,17 +138,19 @@ function AdminParticipants() {
             }}
           >
             <option value="name">Nome A–Z</option>
-            <option value="points">Maior pontuação</option>
+            <option value="points">Mais pontos</option>
+            <option value="recent">Mais recentes</option>
           </select>
         </label>
       </div>
       {isPending && <p role="status">Carregando usuários…</p>}
       {isError && (
-        <p role="alert" className="text-destructive">
-          Não foi possível carregar os usuários.
+        <p role="alert">
+          Não foi possível carregar os usuários. Atualize a página para tentar novamente.
         </p>
       )}
-      {filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map((p) => {
+      <p className="text-sm text-muted-foreground">{filtered.length} usuário(s) encontrado(s)</p>
+      {visible.map((p) => {
         const draft = drafts[p.id] ?? { points: "", reason: "" };
         return (
           <Card key={p.id}>
@@ -153,44 +159,55 @@ function AdminParticipants() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{p.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.status === "active" ? "Ativo" : "Inativo"}
-                  </p>
                 </div>
-                <span className="font-bold">{p.total_points}</span>
+                <span className="font-bold">{p.total_points} pts</span>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  type="number"
-                  placeholder="Pontos (+/-)"
-                  className="sm:w-36"
-                  value={draft.points}
-                  onChange={(e) =>
-                    setDrafts({ ...drafts, [p.id]: { ...draft, points: e.target.value } })
-                  }
-                />
-                <Input
-                  placeholder="Justificativa"
-                  value={draft.reason}
-                  onChange={(e) =>
-                    setDrafts({ ...drafts, [p.id]: { ...draft, reason: e.target.value } })
-                  }
-                />
-                <Button
-                  disabled={adjust.isPending || !draft.points}
-                  onClick={() =>
-                    adjust.mutate({ id: p.id, points: Number(draft.points), reason: draft.reason })
-                  }
-                >
-                  Aplicar
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {p.status === "active" ? "Ativo" : p.status} · Cadastro:{" "}
+                {new Date(p.created_at).toLocaleDateString("pt-BR")}
+              </p>
+              <details>
+                <summary className="cursor-pointer text-sm font-medium">Ajustar pontuação</summary>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    type="number"
+                    placeholder="Pontos (+/-)"
+                    className="sm:w-36"
+                    value={draft.points}
+                    onChange={(e) =>
+                      setDrafts({ ...drafts, [p.id]: { ...draft, points: e.target.value } })
+                    }
+                  />
+                  <Input
+                    placeholder="Justificativa"
+                    value={draft.reason}
+                    onChange={(e) =>
+                      setDrafts({ ...drafts, [p.id]: { ...draft, reason: e.target.value } })
+                    }
+                  />
+                  <Button
+                    disabled={adjust.isPending || !draft.points}
+                    onClick={() =>
+                      adjust.mutate({
+                        id: p.id,
+                        points: Number(draft.points),
+                        reason: draft.reason,
+                      })
+                    }
+                  >
+                    Aplicar
+                  </Button>
+                </div>
+              </details>
             </CardContent>
           </Card>
         );
       })}
-      {pageCount > 1 && (
-        <nav aria-label="Páginas de usuários" className="flex items-center justify-between gap-2">
+      {!isPending && !isError && filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nenhum participante encontrado.</p>
+      )}
+      {filtered.length > pageSize && (
+        <nav aria-label="Páginas de usuários" className="flex items-center justify-between">
           <Button
             variant="outline"
             disabled={currentPage === 0}
@@ -198,20 +215,17 @@ function AdminParticipants() {
           >
             Anterior
           </Button>
-          <span className="text-sm">
-            {currentPage + 1} de {pageCount}
+          <span>
+            {currentPage + 1} / {Math.ceil(filtered.length / pageSize)}
           </span>
           <Button
             variant="outline"
-            disabled={currentPage + 1 >= pageCount}
+            disabled={(currentPage + 1) * pageSize >= filtered.length}
             onClick={() => setPage(currentPage + 1)}
           >
             Próxima
           </Button>
         </nav>
-      )}
-      {!isPending && !isError && filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhum participante encontrado.</p>
       )}
     </div>
   );

@@ -73,6 +73,7 @@ function AdminChallenges() {
   const { userId } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   function editChallenge(c: Challenge) {
     setEditingId(c.id);
@@ -86,7 +87,6 @@ function AdminChallenges() {
     setOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  const [form, setForm] = useState(emptyForm);
 
   const { data: challenges = [] } = useQuery({
     queryKey: ["admin-challenges"],
@@ -103,15 +103,15 @@ function AdminChallenges() {
   const create = useMutation({
     mutationFn: async () => {
       if (form.title.trim().length < 3) throw new Error("Informe um título.");
-      if (new Date(form.ends_at) <= new Date(form.starts_at))
-        throw new Error("O encerramento deve ser depois do início.");
-      if (!Number.isInteger(form.points) || form.points < 0)
-        throw new Error("Informe pontos inteiros, a partir de zero.");
+      if (!Number.isSafeInteger(form.points) || form.points < 0)
+        throw new Error("Informe uma pontuação inteira e não negativa.");
       if (
-        !Number.isFinite(new Date(form.starts_at).getTime()) ||
-        !Number.isFinite(new Date(form.ends_at).getTime())
+        !Number.isFinite(Date.parse(form.starts_at)) ||
+        !Number.isFinite(Date.parse(form.ends_at))
       )
         throw new Error("Informe datas válidas.");
+      if (new Date(form.ends_at) <= new Date(form.starts_at))
+        throw new Error("O encerramento deve ser depois do início.");
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
@@ -127,25 +127,29 @@ function AdminChallenges() {
         extra_rules: form.extra_rules.trim() || null,
         status: form.status,
       };
-      const query = editingId
-        ? supabase
+      const result = editingId
+        ? await supabase
             .from("challenges")
-            .update({ ...payload, updated_at: new Date().toISOString() })
+            .update(payload)
             .eq("id", editingId)
-        : supabase.from("challenges").insert({ ...payload, created_by: userId });
-      const { error } = await query.select("id").single();
-      if (error) throw error;
+            .select("id")
+            .single()
+        : await supabase
+            .from("challenges")
+            .insert({ ...payload, created_by: userId })
+            .select("id")
+            .single();
+      if (result.error) throw result.error;
     },
     onSuccess: () => {
       toast.success("Desafio salvo.");
       setForm(emptyForm());
       setEditingId(null);
       setOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["challenge"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-submissions"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-media-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenge"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-media-challenges"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -158,6 +162,8 @@ function AdminChallenges() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenge"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-media-challenges"] });
     },
     onError: () => toast.error("Não foi possível atualizar o desafio."),
   });
@@ -171,6 +177,8 @@ function AdminChallenges() {
       toast.success("Atividade excluída.");
       queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenge"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-media-challenges"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
     },
     onError: () => toast.error("Não foi possível excluir a atividade."),
@@ -178,12 +186,7 @@ function AdminChallenges() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Edite desafios mesmo com o evento encerrado. Novos envios continuam bloqueados enquanto o
-        evento estiver fechado.
-      </p>
       <Button
-        disabled={create.isPending}
         onClick={() => {
           setEditingId(null);
           setForm(emptyForm());
@@ -196,15 +199,18 @@ function AdminChallenges() {
       {open && (
         <Card>
           <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
-            <h2 className="font-semibold sm:col-span-2">
-              {editingId ? "Editar desafio" : "Novo desafio"}
-            </h2>
-            {editingId && (
-              <p className="text-sm text-muted-foreground sm:col-span-2">
-                Alterar os pontos afeta as próximas aprovações. Os pontos já concedidos permanecem
-                no histórico.
+            <div className="sm:col-span-2">
+              <h2 className="font-semibold">{editingId ? "Editar desafio" : "Novo desafio"}</h2>
+              <p className="text-sm text-muted-foreground">
+                Edição disponível com o evento aberto ou encerrado. Editar não reabre o evento.
               </p>
-            )}
+              {editingId && (
+                <p className="text-xs text-muted-foreground">
+                  Pontos já concedidos são preservados; a nova pontuação vale para as próximas
+                  aprovações.
+                </p>
+              )}
+            </div>
             <div className="sm:col-span-2">
               <Label>Título</Label>
               <Input

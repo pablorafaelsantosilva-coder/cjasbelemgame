@@ -1,4 +1,3 @@
-import { useNow } from "@/hooks/useNow";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,7 +54,13 @@ function ChallengeDetail() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [shareInChat, setShareInChat] = useState(false);
-  const now = useNow();
+  const [uploadStep, setUploadStep] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const {
     data: challenge,
@@ -74,18 +79,17 @@ function ChallengeDetail() {
     },
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings, isError: settingsError } = useQuery({
     queryKey: ["event-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_settings")
-        .select("*")
+        .select("finished,max_file_mb")
         .eq("id", 1)
         .single();
       if (error) throw error;
       return data;
     },
-    refetchInterval: 30_000,
   });
 
   const { data: submission } = useQuery({
@@ -118,39 +122,17 @@ function ChallengeDetail() {
     },
   });
 
-  const {
-    data: existingShare,
-    isPending: sharePending,
-    isError: shareError,
-  } = useQuery({
-    queryKey: ["submission-share", submission?.id],
-    enabled: !!submission?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("submission_chat_shares")
-        .select("submission_id")
-        .eq("submission_id", submission!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-  useEffect(() => {
-    setShareInChat(!!existingShare);
-  }, [existingShare]);
-
   const state = challenge ? liveState(challenge, new Date(now)) : "agendado";
   const status = submissionLabel(submission?.status);
   const canSubmit =
     !!challenge &&
     !!settings &&
     !settings.finished &&
-    (!submission || (!sharePending && !shareError)) &&
     state === "ativo" &&
     (!submission ||
       (submission.status === "rejected" && challenge.allow_resubmit) ||
-      (submission.status === "submitted" && !filesPending));
-  const maxFileMb = settings?.max_file_mb ?? 100;
+      (submission.status === "submitted" && !filesPending && myFiles.length === 0));
+  const maxFileMb = settings?.max_file_mb ?? 50;
   const maxBytes = maxFileMb * 1024 * 1024;
 
   const upload = useMutation({
@@ -162,17 +144,9 @@ function ChallengeDetail() {
         throw new Error(`Cada arquivo pode ter no máximo ${maxFileMb} MB.`);
       if (files.some((file) => !file.type.startsWith("image/") && !file.type.startsWith("video/")))
         throw new Error("Envie apenas fotos ou vídeos.");
-      if (
-        challenge.requires_photo &&
-        !files.some((f) => f.type.startsWith("image/")) &&
-        !myFiles.some((f) => f.file_type.startsWith("image/"))
-      )
+      if (challenge.requires_photo && !files.some((f) => f.type.startsWith("image/")))
         throw new Error("Inclua uma foto para este desafio.");
-      if (
-        challenge.requires_video &&
-        !files.some((f) => f.type.startsWith("video/")) &&
-        !myFiles.some((f) => f.file_type.startsWith("video/"))
-      )
+      if (challenge.requires_video && !files.some((f) => f.type.startsWith("video/")))
         throw new Error("Inclua um vídeo para este desafio.");
       let subId = submission?.id;
       const isRetry = submission?.status === "rejected";
@@ -186,32 +160,49 @@ function ChallengeDetail() {
         subId = sub.id;
       }
 
-      for (const file of files) {
-        const ext = file.name.split(".").pop() ?? "bin";
-        const path = `${userId}/${subId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upError } = await supabase.storage.from("proofs").upload(path, file, {
-          contentType: file.type,
-          upsert: false,
-        });
-        if (upError)
-          throw new Error(
-            `Não foi possível enviar ${file.name}. Confira a conexão e o limite de ${maxFileMb} MB do armazenamento. Os arquivos já enviados foram preservados.`,
-          );
-        const { error: rowError } = await supabase.from("submission_files").insert({
-          submission_id: subId,
-          user_id: userId,
-          storage_path: path,
-          file_type: file.type || "application/octet-stream",
-          file_size: file.size,
-        });
-        if (rowError) {
-          await supabase.storage.from("proofs").remove([path]);
-          throw rowError;
+      // Register the complete set together: admins must not see a partial upload.
+      const uploadedPaths: string[] = [];
+      const fileRows: {
+        submission_id: string;
+        user_id: string;
+        storage_path: string;
+        file_type: string;
+        file_size: number;
+      }[] = [];
+      try {
+        for (const [index, file] of files.entries()) {
+          setUploadStep(`Enviando arquivo ${index + 1} de ${files.length}…`);
+          const ext =
+            file.name
+              .split(".")
+              .pop()
+              ?.toLowerCase()
+              .replace(/[^a-z0-9]/g, "") || "bin";
+          const path = `${userId}/${subId}/${crypto.randomUUID()}.${ext}`;
+          const { error } = await supabase.storage
+            .from("proofs")
+            .upload(path, file, { contentType: file.type, upsert: false });
+          if (error)
+            throw new Error(
+              `Falha ao enviar ${file.name}. Confira a conexão e o limite de armazenamento. ${error.message}`,
+            );
+          uploadedPaths.push(path);
+          fileRows.push({
+            submission_id: subId!,
+            user_id: userId,
+            storage_path: path,
+            file_type: file.type,
+            file_size: file.size,
+          });
         }
-        // Keep only files that still need uploading when a later upload fails.
-        setFiles((pending) => pending.filter((item) => item !== file));
+        setUploadStep("Registrando comprovação…");
+        const { error } = await supabase.from("submission_files").insert(fileRows);
+        if (error) throw error;
+      } catch (error) {
+        if (uploadedPaths.length) await supabase.storage.from("proofs").remove(uploadedPaths);
+        throw error;
       }
-      if (subId) {
+      if (isRetry && subId) {
         const { error: consentError } = await supabase
           .from("submission_chat_shares")
           .delete()
@@ -240,21 +231,19 @@ function ChallengeDetail() {
           : "Envio recebido! Aguarde a validação da organização.",
       );
       setFiles([]);
+      setShareInChat(false);
       if (inputRef.current) inputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["submission", id, userId] });
       queryClient.invalidateQueries({ queryKey: ["submission-files"] });
       queryClient.invalidateQueries({ queryKey: ["my-submissions", userId] });
       queryClient.invalidateQueries({ queryKey: ["admin-submissions"] });
     },
-    onError: (e: Error) =>
-      toast.error(
-        e.message || "Não foi possível enviar. Confira sua conexão e o limite por arquivo.",
-      ),
-    onSettled: () => {
+    onError: (e: Error) => {
+      toast.error(e.message || "Não foi possível enviar.");
       queryClient.invalidateQueries({ queryKey: ["submission", id, userId] });
       queryClient.invalidateQueries({ queryKey: ["submission-files"] });
-      queryClient.invalidateQueries({ queryKey: ["submission-share"] });
     },
+    onSettled: () => setUploadStep(""),
   });
 
   if (challengePending)
@@ -346,15 +335,15 @@ function ChallengeDetail() {
         </Card>
       )}
 
+      {settingsError && (
+        <p role="alert" className="text-sm text-destructive">
+          Não foi possível consultar os limites do evento. Atualize a página antes de enviar.
+        </p>
+      )}
       {canSubmit ? (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <h2 className="text-sm font-semibold">
-              {myFiles.length ? "Adicionar comprovação" : "Enviar comprovação"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Até {maxFileMb} MB por arquivo. Prefira JPG/PNG para fotos e MP4 para vídeos.
-            </p>
+            <h2 className="text-sm font-semibold">Enviar comprovação</h2>
             <input
               ref={inputRef}
               type="file"
@@ -412,7 +401,7 @@ function ChallengeDetail() {
               disabled={upload.isPending || files.length === 0}
               onClick={() => upload.mutate()}
             >
-              {upload.isPending ? "Enviando…" : "Enviar para validação"}
+              {upload.isPending ? uploadStep || "Preparando envio…" : "Enviar para validação"}
             </Button>
           </CardContent>
         </Card>
@@ -434,6 +423,10 @@ function ChallengeDetail() {
 }
 
 function TimeRemaining({ at }: { at: string }) {
-  const now = useNow(1000);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   return <span>{countdown(at, now)}</span>;
 }
