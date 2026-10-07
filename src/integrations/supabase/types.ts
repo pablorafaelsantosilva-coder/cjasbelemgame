@@ -466,6 +466,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      review_private_chats: {
+        Args: { _admin: string; _pin_valid: boolean; _a?: string; _b?: string; _before?: string; _before_id?: string; _reason?: string };
+        Returns: Json;
+      };
       adjust_points: {
         Args: { _description: string; _points: number; _user_id: string }
         Returns: undefined

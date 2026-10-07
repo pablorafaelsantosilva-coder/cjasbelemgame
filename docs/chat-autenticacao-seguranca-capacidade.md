@@ -71,7 +71,7 @@ Senhas ficam apenas no formulário até o envio ao provedor e não são gravadas
 
 ## Privacidade e integridade verificadas
 
-Mensagens privadas só são selecionáveis pelo remetente e destinatário. O papel de administrador do aplicativo não concede leitura de conversas alheias; operadores com acesso privilegiado ao banco continuam tendo acesso técnico. Não há criptografia de ponta a ponta.
+A leitura direta das mensagens continua restrita ao remetente e destinatário. A aba administrativa acrescenta uma exceção para casos de violação das regras, com login de administrador, senha adicional e motivo auditado. Operadores com acesso privilegiado ao banco continuam tendo acesso técnico. Não há criptografia de ponta a ponta.
 
 O banco bloqueia remetente falsificado, conversa consigo mesmo, participantes inativos, corpo vazio/excessivo, respostas de outra conversa, alteração/exclusão pelo cliente e envio repetido em menos de um segundo. O diretório retorna nome, identificador e avatar, sem e-mail. Respostas do chat geral guardam referência, sem copiar permanentemente o texto de uma mensagem ocultada.
 
@@ -103,3 +103,13 @@ Referências oficiais:
 Os testes `tests/chat-permissions.mjs` e `tests/proof-security.mjs` usam PostgreSQL isolado via PGlite. Instalar `@electric-sql/pglite` em um diretório temporário e apontar `PGLITE_MODULE` para seu `dist/index.js`; executar cada arquivo com Node. Eles cobrem 16 cenários de chat e 8 cenários de comprovações, sem acessar dados de participantes reais.
 
 `tests/chat-auth-ui.cjs` usa Playwright, um servidor local em `TEST_URL` (padrão `http://127.0.0.1:5173`) e respostas de Supabase simuladas. Informar `PLAYWRIGHT_MODULE` e `CHROMIUM_PATH` se não estiverem disponíveis normalmente. O teste não envia e-mails reais nem cria contas. As credenciais de teste são fictícias. Entrega real de e-mail, Realtime em produção e limites do serviço precisam de verificação após a ativação.
+
+## Consulta administrativa por violação das regras
+
+A aba **Painel → Conversas privadas** exige papel de administrador, senha adicional e justificativa de 10 a 500 caracteres. Consulta somente para leitura, paginada em 50 itens; o PIN e o texto das mensagens não são copiados para a auditoria. A interface bloqueia após cinco minutos ou ao ocultar a aba. O servidor verifica papel e senha em cada chamada POST e marca a resposta como não armazenável. Cinco tentativas incorretas bloqueiam o administrador por 15 minutos, persistidas no banco. Não há nova política de leitura irrestrita para administradores na tabela original.
+
+Ativação: aplicar **drizzle/migrations/0004_admin_private_chat_review.sql** pelo fluxo de migrações do projeto, configurar o segredo de servidor **ADMIN_CHAT_PIN** com o valor informado pelo proprietário e publicar. Não usar variável com prefixo VITE nem inserir a senha no código, documentação ou GitHub. O segredo não foi configurado remotamente por esta alteração: sem ele a área permanece bloqueada. A migração depende do chat privado já criado.
+
+O aviso aos participantes aparece em texto de 10 px, abaixo do cabeçalho: “Os administradores podem ter acesso às conversas privadas em casos de violação das regras.” A justificativa é declarada pelo administrador, não há verificação automática de que ocorreu uma violação; a auditoria permite revisar o uso.
+
+`tests/admin-chat-permissions.mjs` verifica isolamento da função privilegiada, bloqueio persistente, justificativa e auditoria em PostgreSQL isolado. `tests/admin-chat-ui.cjs` verifica acesso de participante/administrador e falha fechada com respostas simuladas, sem usuários ou consultas reais.
