@@ -15,6 +15,20 @@
       "when": 1791331367084,
       "tag": "0001_proof_upload_limit_default",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791331429291,
+      "tag": "0002_private_chat_and_replies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791331438031,
+      "tag": "0003_proof_security",
+      "breakpoints": true
     }
   ]
 }

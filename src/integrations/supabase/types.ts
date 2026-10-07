@@ -115,6 +115,7 @@ export type Database = {
           created_at: string
           hidden: boolean
           id: string
+          reply_to_id: string | null
           updated_at: string
         }
         Insert: {
@@ -124,6 +125,7 @@ export type Database = {
           created_at?: string
           hidden?: boolean
           id?: string
+          reply_to_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -133,9 +135,53 @@ export type Database = {
           created_at?: string
           hidden?: boolean
           id?: string
+          reply_to_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          recipient_id: string
+          reply_to_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          reply_to_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_settings: {
         Row: {
@@ -425,6 +471,14 @@ export type Database = {
         Returns: undefined
       }
       delete_challenge: { Args: { _challenge_id: string }; Returns: undefined }
+      get_chat_people: {
+        Args: { _limit?: number; _search?: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          name: string
+        }[]
+      }
       get_chat_shared_media: {
         Args: { _before?: string; _limit?: number }
         Returns: {
@@ -436,6 +490,18 @@ export type Database = {
           file_paths: string[]
           file_types: string[]
           submission_id: string
+        }[]
+      }
+      get_direct_inbox: {
+        Args: never
+        Returns: {
+          last_at: string
+          last_body: string
+          last_sender_id: string
+          peer_active: boolean
+          peer_avatar_url: string
+          peer_id: string
+          peer_name: string
         }[]
       }
       get_leaderboard: {
