@@ -4,6 +4,9 @@ import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AVATAR_PREFIX } from "@/lib/avatars";
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -20,13 +23,23 @@ Avatar.displayName = AvatarPrimitive.Root.displayName;
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full", className)}
-    {...props}
-  />
-));
+>(({ className, src, ...props }, ref) => {
+  const path = src?.startsWith(AVATAR_PREFIX) ? src.slice(AVATAR_PREFIX.length) : null;
+  const signed = useQuery({
+    queryKey: ["avatar-url", path],
+    enabled: !!path,
+    staleTime: 45 * 60_000,
+    gcTime: 50 * 60_000,
+    queryFn: async () => {
+      if (!path) return null;
+      const { data, error } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+  return <AvatarPrimitive.Image ref={ref} src={path ? signed.data ?? undefined : src}
+    className={cn("aspect-square h-full w-full object-cover", className)} {...props} />;
+});
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 const AvatarFallback = React.forwardRef<
