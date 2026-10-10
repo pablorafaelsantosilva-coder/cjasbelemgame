@@ -56,7 +56,6 @@ export type Database = {
           id: string
           instructions: string
           max_participants: number | null
-          share_photos_in_chat: boolean
           points: number
           requires_photo: boolean
           requires_video: boolean
@@ -77,7 +76,6 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
@@ -98,7 +96,6 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
