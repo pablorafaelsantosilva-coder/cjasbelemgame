@@ -50,6 +50,13 @@
       "when": 1791608243825,
       "tag": "0009_profile_bio",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791608471078,
+      "tag": "0007_ensure_profile_bio_access",
+      "breakpoints": true
     }
   ]
 }

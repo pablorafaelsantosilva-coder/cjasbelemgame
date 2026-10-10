@@ -299,6 +299,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string
           created_at: string
           email: string | null
           id: string
@@ -309,6 +310,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string
           created_at?: string
           email?: string | null
           id: string
@@ -319,6 +321,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -517,6 +520,7 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_participant_bio: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
