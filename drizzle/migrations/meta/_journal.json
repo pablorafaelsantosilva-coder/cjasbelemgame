@@ -43,6 +43,13 @@
       "when": 1791607867623,
       "tag": "0005_profile_avatar_access",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791608243825,
+      "tag": "0009_profile_bio",
+      "breakpoints": true
     }
   ]
 }

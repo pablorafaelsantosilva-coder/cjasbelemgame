@@ -298,6 +298,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string
           avatar_url: string | null
           created_at: string
           email: string | null
@@ -308,6 +309,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bio?: string
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -318,6 +320,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bio?: string
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -469,6 +472,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_participant_bio: { Args: { _user_id: string }; Returns: string | null }
       adjust_points: {
         Args: { _description: string; _points: number; _user_id: string }
         Returns: undefined

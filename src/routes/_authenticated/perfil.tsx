@@ -1,3 +1,5 @@
+import { useProfileBio } from "@/hooks/useProfileBio";
+import { Textarea } from "@/components/ui/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Trash2 } from "lucide-react";
@@ -36,6 +38,11 @@ function ProfilePage() {
   const { data: profile } = useProfile(userId);
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const bioQuery = useProfileBio(userId, userId);
+  useEffect(() => {
+    if (bioQuery.data !== undefined) setBio(bioQuery.data);
+  }, [bioQuery.data, userId]);
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -46,15 +53,21 @@ function ProfilePage() {
     let newPath: string | null = null;
     try {
       if (file) newPath = await uploadAvatar(userId, file);
-      const { error } = await supabase.from("profiles")
+      const { error } = await supabase
+        .from("profiles")
         .update({ avatar_url: newPath ? `${AVATAR_PREFIX}${newPath}` : null })
-        .eq("id", userId).select("id").single();
+        .eq("id", userId)
+        .select("id")
+        .single();
       if (error) throw new Error("Não foi possível salvar a foto.");
       const previous = profile?.avatar_url;
       if (previous?.startsWith(`${AVATAR_PREFIX}${userId}/`))
         await supabase.storage.from("avatars").remove([previous.slice(AVATAR_PREFIX.length)]);
-      await Promise.all(["profile", "leaderboard", "ranking", "direct-inbox", "chat-people"].map((key) =>
-        queryClient.invalidateQueries({ queryKey: [key] })));
+      await Promise.all(
+        ["profile", "leaderboard", "ranking", "direct-inbox", "chat-people"].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      );
       toast.success(file ? "Foto de perfil atualizada." : "Foto de perfil removida.");
     } catch (error) {
       if (newPath) await supabase.storage.from("avatars").remove([newPath]);
@@ -107,22 +120,34 @@ function ProfilePage() {
   });
 
   async function save() {
-    if (name.trim().length < 2) {
-      toast.error("Informe seu nome completo.");
+    if (!userId || saving || bioQuery.isPending || bioQuery.isError) return;
+    if (name.trim().length < 2 || name.trim().length > 80) {
+      toast.error("Informe um nome entre 2 e 80 caracteres.");
+      return;
+    }
+    if (Array.from(bio).length > 150) {
+      toast.error("A bio pode ter até 150 caracteres.");
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name: name.trim() })
-      .eq("id", userId!);
-    setSaving(false);
-    if (error) {
-      toast.error("Não foi possível salvar.");
-      return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ name: name.trim(), bio: bio.trim() })
+        .eq("id", userId)
+        .select("id")
+        .single();
+      if (error) throw error;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["profile-bio"] }),
+      ]);
+      toast.success("Perfil atualizado.");
+    } catch {
+      toast.error("Não foi possível salvar seu perfil. Tente novamente.");
+    } finally {
+      setSaving(false);
     }
-    toast.success("Perfil atualizado.");
-    queryClient.invalidateQueries({ queryKey: ["profile", userId] });
   }
 
   const stats = { points: profile?.total_points ?? 0, confirmed, position };
@@ -134,8 +159,11 @@ function ProfilePage() {
           <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.name ?? ""} />
           <AvatarFallback>{(profile?.name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-bold">{profile?.name}</h1>
+          {bioQuery.data && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm">{bioQuery.data}</p>
+          )}
           <p className="text-sm text-muted-foreground">{profile?.email}</p>
           <p className="text-sm font-semibold">
             {stats.points} pontos {position ? `· ${position}º lugar` : ""}
@@ -144,21 +172,72 @@ function ProfilePage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-          aria-label="Escolher foto de perfil" disabled={photoBusy}
-          onChange={(e) => { const file = e.target.files?.[0]; if (file) void changePhoto(file); }} />
-        <Button variant="outline" disabled={photoBusy || !profile} onClick={() => photoInput.current?.click()}>
-          <Camera />{photoBusy ? "Atualizando foto…" : "Alterar foto"}
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          aria-label="Escolher foto de perfil"
+          disabled={photoBusy}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void changePhoto(file);
+          }}
+        />
+        <Button
+          variant="outline"
+          disabled={photoBusy || !profile}
+          onClick={() => photoInput.current?.click()}
+        >
+          <Camera />
+          {photoBusy ? "Atualizando foto…" : "Alterar foto"}
         </Button>
-        {profile?.avatar_url && <Button variant="ghost" disabled={photoBusy} onClick={() => void changePhoto(null)}><Trash2 />Remover foto</Button>}
-        <p className="w-full text-xs text-muted-foreground">JPG, PNG ou WebP · até 5 MB · visível aos participantes.</p>
+        {profile?.avatar_url && (
+          <Button variant="ghost" disabled={photoBusy} onClick={() => void changePhoto(null)}>
+            <Trash2 />
+            Remover foto
+          </Button>
+        )}
+        <p className="w-full text-xs text-muted-foreground">
+          JPG, PNG ou WebP · até 5 MB · visível aos participantes.
+        </p>
       </div>
 
       <Card>
         <CardContent className="space-y-3 p-4">
           <Label htmlFor="name">Nome exibido</Label>
           <Input id="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
-          <Button onClick={save} disabled={saving}>
+          <div className="space-y-2">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
+              value={bio}
+              rows={3}
+              disabled={saving || bioQuery.isPending || bioQuery.isError}
+              placeholder="Conte um pouco sobre você ✨"
+              aria-describedby="bio-help bio-count"
+              onChange={(e) => setBio(Array.from(e.target.value).slice(0, 150).join(""))}
+            />
+            <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
+              <p id="bio-help">
+                Opcional. Visível aos participantes nas conversas privadas. Use emojis e quebras de
+                linha.
+              </p>
+              <span id="bio-count" className="shrink-0">
+                {Array.from(bio).length}/150
+              </span>
+            </div>
+            {bioQuery.isError && (
+              <p role="alert" className="text-sm text-destructive">
+                Não foi possível carregar a bio. Se a função acabou de ser adicionada, a organização
+                precisa aplicar a atualização do banco.
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={save}
+            disabled={saving || !profile || bioQuery.isPending || bioQuery.isError}
+          >
             {saving ? "Salvando…" : "Salvar"}
           </Button>
         </CardContent>

@@ -115,3 +115,14 @@ versão posterior e aceita a coluna já existente em ambientes atualizados antes
 Desligar impede novas leituras; imagens em tela podem permanecer até atualização e
 links assinados já emitidos expiram em até dez minutos. O bucket segue privado.
 Validação de permissões: `tests/challenge-chat-photos.mjs`, com `PGLITE_MODULE`.
+
+## Bio do participante
+
+Aplicar `0009_profile_bio` e publicar a versão sincronizada. Em Perfil, o campo Bio
+aceita até 150 pontos de código Unicode, incluindo emojis e quebras de linha.
+Salvar vazio remove a bio. O próprio perfil e o cabeçalho da conversa privada
+mostram o texto como texto simples, sem interpretar HTML. A RPC autenticada
+`get_participant_bio` retorna somente a bio de participantes ativos (ou a própria),
+sem liberar e-mail nem outros campos privados. A coluna possui limite no banco;
+a edição permanece sujeita à RLS dos perfis. Sem migração, a falha fica localizada
+na edição da bio e não afeta as consultas comuns de perfil.

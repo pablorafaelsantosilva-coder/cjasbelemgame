@@ -1,3 +1,4 @@
+import { useProfileBio } from "@/hooks/useProfileBio";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -46,6 +47,7 @@ export function PrivateChat({
 }) {
   const { userId } = useSession();
   const { data: profile } = useProfile(userId);
+  const { data: peerBio } = useProfileBio(userId, active ? (peer?.id ?? null) : null);
   const { data: isAdmin } = useIsAdmin(userId);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -272,7 +274,10 @@ export function PrivateChat({
               Adicionar pessoas
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">Conversas entre participantes. Administradores autorizados podem revisar as mensagens para moderação.</p>
+          <p className="text-xs text-muted-foreground">
+            Conversas entre participantes. Administradores autorizados podem revisar as mensagens
+            para moderação.
+          </p>
           {newConversation && (
             <Button
               variant="ghost"
@@ -438,6 +443,11 @@ export function PrivateChat({
             </Avatar>
             <div className="min-w-0">
               <h2 className="truncate font-semibold">{peer.name}</h2>
+              {peerBio && (
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                  {peerBio}
+                </p>
+              )}
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <LockKeyhole className="size-3" />
                 Conversa entre participantes · sujeita à revisão da organização
