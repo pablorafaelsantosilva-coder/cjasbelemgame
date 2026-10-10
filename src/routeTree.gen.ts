@@ -23,6 +23,7 @@ import { Route as AuthenticatedRankingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
+import { Route as AuthenticatedAdminConversasRouteImport } from './routes/_authenticated/admin.conversas'
 import { Route as AuthenticatedAdminDesafiosRouteImport } from './routes/_authenticated/admin.desafios'
 import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated/admin.midias'
 import { Route as AuthenticatedAdminParticipantesRouteImport } from './routes/_authenticated/admin.participantes'
@@ -101,6 +102,12 @@ const AuthenticatedAdminConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminConversasRoute =
+  AuthenticatedAdminConversasRouteImport.update({
+    id: '/conversas',
+    path: '/conversas',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDesafiosRoute =
   AuthenticatedAdminDesafiosRouteImport.update({
     id: '/desafios',
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/admin/conversas': typeof AuthenticatedAdminConversasRoute
   '/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
@@ -163,6 +171,7 @@ export interface FileRoutesByTo {
   '/ranking': typeof AuthenticatedRankingRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/admin/conversas': typeof AuthenticatedAdminConversasRoute
   '/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
@@ -185,6 +194,7 @@ export interface FileRoutesById {
   '/_authenticated/ranking': typeof AuthenticatedRankingRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/_authenticated/admin/conversas': typeof AuthenticatedAdminConversasRoute
   '/_authenticated/admin/desafios': typeof AuthenticatedAdminDesafiosRoute
   '/_authenticated/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/_authenticated/admin/participantes': typeof AuthenticatedAdminParticipantesRoute
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/admin/auditoria'
     | '/admin/configuracoes'
+    | '/admin/conversas'
     | '/admin/desafios'
     | '/admin/midias'
     | '/admin/participantes'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/admin/auditoria'
     | '/admin/configuracoes'
+    | '/admin/conversas'
     | '/admin/desafios'
     | '/admin/midias'
     | '/admin/participantes'
@@ -247,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ranking'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/configuracoes'
+    | '/_authenticated/admin/conversas'
     | '/_authenticated/admin/desafios'
     | '/_authenticated/admin/midias'
     | '/_authenticated/admin/participantes'
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/conversas': {
+      id: '/_authenticated/admin/conversas'
+      path: '/conversas'
+      fullPath: '/admin/conversas'
+      preLoaderRoute: typeof AuthenticatedAdminConversasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/desafios': {
       id: '/_authenticated/admin/desafios'
       path: '/desafios'
@@ -403,6 +423,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
+  AuthenticatedAdminConversasRoute: typeof AuthenticatedAdminConversasRoute
   AuthenticatedAdminDesafiosRoute: typeof AuthenticatedAdminDesafiosRoute
   AuthenticatedAdminMidiasRoute: typeof AuthenticatedAdminMidiasRoute
   AuthenticatedAdminParticipantesRoute: typeof AuthenticatedAdminParticipantesRoute
@@ -413,6 +434,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
+  AuthenticatedAdminConversasRoute: AuthenticatedAdminConversasRoute,
   AuthenticatedAdminDesafiosRoute: AuthenticatedAdminDesafiosRoute,
   AuthenticatedAdminMidiasRoute: AuthenticatedAdminMidiasRoute,
   AuthenticatedAdminParticipantesRoute: AuthenticatedAdminParticipantesRoute,
