@@ -7,7 +7,8 @@ export function useProfileBio(viewerId: string | null, profileId: string | null)
     enabled: !!viewerId && !!profileId,
     retry: false,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_participant_bio", { _user_id: profileId! });
+      if (!viewerId || !profileId) return "";
+      const { data, error } = await supabase.rpc("get_participant_bio", { _user_id: profileId });
       if (error) throw error;
       return data ?? "";
     },
