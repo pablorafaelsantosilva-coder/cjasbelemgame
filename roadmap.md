@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Verificar atualização 0008 e habilitar envio e remoção de foto de perfil
+- [x] Verificar atualização 0008 e habilitar envio e remoção de foto de perfil
 
 - [x] Adicionar consulta administrativa de conversas privadas com senha, auditoria e aviso aos participantes
 
