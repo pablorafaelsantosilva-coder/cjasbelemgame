@@ -1,0 +1,3 @@
+CREATE POLICY avatars_read_authenticated ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'avatars');
+CREATE POLICY avatars_insert_own ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text AND lower(storage.extension(name)) IN ('jpg','jpeg','png','webp') AND EXISTS (SELECT 1 FROM public.profiles WHERE id=auth.uid() AND status='active'));
+CREATE POLICY avatars_delete_own ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
