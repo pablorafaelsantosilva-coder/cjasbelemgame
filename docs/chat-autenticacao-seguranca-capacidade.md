@@ -103,3 +103,15 @@ Referências oficiais:
 Os testes `tests/chat-permissions.mjs` e `tests/proof-security.mjs` usam PostgreSQL isolado via PGlite. Instalar `@electric-sql/pglite` em um diretório temporário e apontar `PGLITE_MODULE` para seu `dist/index.js`; executar cada arquivo com Node. Eles cobrem 16 cenários de chat e 8 cenários de comprovações, sem acessar dados de participantes reais.
 
 `tests/chat-auth-ui.cjs` usa Playwright, um servidor local em `TEST_URL` (padrão `http://127.0.0.1:5173`) e respostas de Supabase simuladas. Informar `PLAYWRIGHT_MODULE` e `CHROMIUM_PATH` se não estiverem disponíveis normalmente. O teste não envia e-mails reais nem cria contas. As credenciais de teste são fictícias. Entrega real de e-mail, Realtime em produção e limites do serviço precisam de verificação após a ativação.
+
+## Fotos no chat: opção por desafio
+
+Em criar/editar desafio, **Mostrar fotos deste desafio no chat geral** controla a
+exibição de imagens aprovadas e autorizadas pelo participante. Novos desafios
+começam com a opção desligada; vídeos não entram no chat por esta opção.
+Aplicar a migração `0008_restore_challenge_chat_photos` pelo journal atual e publicar
+a versão sincronizada do GitHub. Esta migração restaura a função removida de uma
+versão posterior e aceita a coluna já existente em ambientes atualizados antes.
+Desligar impede novas leituras; imagens em tela podem permanecer até atualização e
+links assinados já emitidos expiram em até dez minutos. O bucket segue privado.
+Validação de permissões: `tests/challenge-chat-photos.mjs`, com `PGLITE_MODULE`.

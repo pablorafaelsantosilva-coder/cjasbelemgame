@@ -210,7 +210,7 @@ function ChallengeDetail() {
           .eq("user_id", userId);
         if (consentError) throw consentError;
       }
-      if (shareInChat && subId) {
+      if (challenge.share_photos_in_chat && shareInChat && subId) {
         const { error: consentError } = await supabase
           .from("submission_chat_shares")
           .insert({ submission_id: subId, user_id: userId });
@@ -226,7 +226,7 @@ function ChallengeDetail() {
     },
     onSuccess: () => {
       toast.success(
-        shareInChat
+        challenge?.share_photos_in_chat && shareInChat
           ? "Envio recebido! Se aprovado, aparecerá no chat geral."
           : "Envio recebido! Aguarde a validação da organização.",
       );
@@ -377,25 +377,30 @@ function ChallengeDetail() {
                 ))}
               </ul>
             )}
-            <div className="flex items-center gap-3 border-t border-border pt-3">
-              <Switch
-                id="share-proof-in-chat"
-                checked={shareInChat}
-                onCheckedChange={setShareInChat}
-                disabled={upload.isPending}
-                aria-label="Mostrar foto ou vídeo no chat geral após aprovação"
-              />
-              <label
-                htmlFor="share-proof-in-chat"
-                className="min-w-0 cursor-pointer text-sm font-medium"
-              >
-                Mostrar para todos no chat geral?
-                <span className="block text-xs font-normal text-muted-foreground">
-                  Opcional. Só aparece após a organização aprovar. Desligado mantém sua mídia
-                  privada.
-                </span>
-              </label>
-            </div>
+            {challenge.share_photos_in_chat ? (
+              <div className="flex items-center gap-3 border-t border-border pt-3">
+                <Switch
+                  id="share-proof-in-chat"
+                  checked={shareInChat}
+                  onCheckedChange={setShareInChat}
+                  disabled={upload.isPending}
+                  aria-label="Autorizar fotos no chat geral após aprovação"
+                />
+                <label
+                  htmlFor="share-proof-in-chat"
+                  className="min-w-0 cursor-pointer text-sm font-medium"
+                >
+                  Autorizar minhas fotos no chat geral?
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Opcional. As fotos aparecem após aprovação. Vídeos continuam privados.
+                  </span>
+                </label>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Comprovações privadas para avaliação da organização.
+              </p>
+            )}
             <Button
               className="w-full"
               disabled={upload.isPending || files.length === 0}

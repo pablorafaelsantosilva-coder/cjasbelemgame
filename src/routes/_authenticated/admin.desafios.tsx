@@ -58,6 +58,7 @@ const emptyForm = () => ({
   description: "",
   instructions: "",
   points: 100,
+  share_photos_in_chat: false,
   type: "normal" as "normal" | "relampago",
   starts_at: toLocalInput(new Date()),
   ends_at: toLocalInput(new Date(Date.now() + 3 * 3600_000)),
@@ -79,6 +80,7 @@ function AdminChallenges() {
     setEditingId(c.id);
     setForm({
       ...c,
+      share_photos_in_chat: c.share_photos_in_chat ?? false,
       audience: c.audience ?? "",
       extra_rules: c.extra_rules ?? "",
       starts_at: toLocalInput(new Date(c.starts_at)),
@@ -117,6 +119,7 @@ function AdminChallenges() {
         description: form.description.trim(),
         instructions: form.instructions.trim(),
         points: Number(form.points) || 0,
+        share_photos_in_chat: form.share_photos_in_chat,
         type: form.type,
         starts_at: new Date(form.starts_at).toISOString(),
         ends_at: new Date(form.ends_at).toISOString(),
@@ -285,6 +288,22 @@ function AdminChallenges() {
                 value={form.extra_rules}
                 onChange={(e) => setForm({ ...form, extra_rules: e.target.value })}
               />
+            </div>
+            <div className="rounded-xl border bg-secondary/30 p-4 sm:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="challenge-chat-photos"
+                  checked={form.share_photos_in_chat}
+                  onCheckedChange={(value) => setForm({ ...form, share_photos_in_chat: value })}
+                />
+                <Label htmlFor="challenge-chat-photos">
+                  Mostrar fotos deste desafio no chat geral
+                </Label>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                As fotos aparecem após aprovação, quando o participante autorizar. Desligar impede
+                que o chat volte a carregar essas fotos. Vídeos continuam privados.
+              </p>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Switch

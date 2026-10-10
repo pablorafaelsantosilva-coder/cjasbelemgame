@@ -8,6 +8,7 @@ export interface Challenge {
   description: string;
   instructions: string;
   points: number;
+  share_photos_in_chat?: boolean;
   type: ChallengeType;
   starts_at: string;
   ends_at: string;
@@ -35,7 +36,10 @@ export interface Submission {
 /** Estado do desafio na linha do tempo (publicação e encerramento automáticos). */
 export type LiveState = "rascunho" | "cancelado" | "agendado" | "ativo" | "encerrado";
 
-export function liveState(c: Pick<Challenge, "status" | "starts_at" | "ends_at">, now = new Date()): LiveState {
+export function liveState(
+  c: Pick<Challenge, "status" | "starts_at" | "ends_at">,
+  now = new Date(),
+): LiveState {
   if (c.status === "rascunho") return "rascunho";
   if (c.status === "cancelado") return "cancelado";
   const start = new Date(c.starts_at).getTime();
