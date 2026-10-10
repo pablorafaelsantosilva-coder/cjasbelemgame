@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Adicionar consulta administrativa de conversas privadas com senha, auditoria e aviso aos participantes
+- [x] Adicionar consulta administrativa de conversas privadas com senha, auditoria e aviso aos participantes
 
 - [x] Adicionar exclusão de atividade com confirmação
 - [x] Adicionar opção para zerar o ranking com confirmação
