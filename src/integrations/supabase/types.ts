@@ -56,10 +56,10 @@ export type Database = {
           id: string
           instructions: string
           max_participants: number | null
-          share_photos_in_chat: boolean
           points: number
           requires_photo: boolean
           requires_video: boolean
+          share_photos_in_chat: boolean
           starts_at: string
           status: Database["public"]["Enums"]["challenge_status"]
           title: string
@@ -77,10 +77,10 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
+          share_photos_in_chat?: boolean
           starts_at?: string
           status?: Database["public"]["Enums"]["challenge_status"]
           title: string
@@ -98,10 +98,10 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
+          share_photos_in_chat?: boolean
           starts_at?: string
           status?: Database["public"]["Enums"]["challenge_status"]
           title?: string

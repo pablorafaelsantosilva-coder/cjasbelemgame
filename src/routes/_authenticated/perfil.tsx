@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Trash2 } from "lucide-react";
+import { AVATAR_PREFIX, uploadAvatar } from "@/lib/avatars";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +37,33 @@ function ProfilePage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  async function changePhoto(file: File | null) {
+    if (!userId || photoBusy) return;
+    setPhotoBusy(true);
+    let newPath: string | null = null;
+    try {
+      if (file) newPath = await uploadAvatar(userId, file);
+      const { error } = await supabase.from("profiles")
+        .update({ avatar_url: newPath ? `${AVATAR_PREFIX}${newPath}` : null })
+        .eq("id", userId).select("id").single();
+      if (error) throw new Error("Não foi possível salvar a foto.");
+      const previous = profile?.avatar_url;
+      if (previous?.startsWith(`${AVATAR_PREFIX}${userId}/`))
+        await supabase.storage.from("avatars").remove([previous.slice(AVATAR_PREFIX.length)]);
+      await Promise.all(["profile", "leaderboard", "ranking", "direct-inbox", "chat-people"].map((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] })));
+      toast.success(file ? "Foto de perfil atualizada." : "Foto de perfil removida.");
+    } catch (error) {
+      if (newPath) await supabase.storage.from("avatars").remove([newPath]);
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a foto.");
+    } finally {
+      setPhotoBusy(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  }
 
   useEffect(() => {
     if (profile?.name) setName(profile.name);
@@ -112,6 +141,17 @@ function ProfilePage() {
             {stats.points} pontos {position ? `· ${position}º lugar` : ""}
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+          aria-label="Escolher foto de perfil" disabled={photoBusy}
+          onChange={(e) => { const file = e.target.files?.[0]; if (file) void changePhoto(file); }} />
+        <Button variant="outline" disabled={photoBusy || !profile} onClick={() => photoInput.current?.click()}>
+          <Camera />{photoBusy ? "Atualizando foto…" : "Alterar foto"}
+        </Button>
+        {profile?.avatar_url && <Button variant="ghost" disabled={photoBusy} onClick={() => void changePhoto(null)}><Trash2 />Remover foto</Button>}
+        <p className="w-full text-xs text-muted-foreground">JPG, PNG ou WebP · até 5 MB · visível aos participantes.</p>
       </div>
 
       <Card>
