@@ -272,6 +272,7 @@ export function PrivateChat({
               Adicionar pessoas
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Conversas entre participantes. Administradores autorizados podem revisar as mensagens para moderação.</p>
           {newConversation && (
             <Button
               variant="ghost"
@@ -439,7 +440,7 @@ export function PrivateChat({
               <h2 className="truncate font-semibold">{peer.name}</h2>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <LockKeyhole className="size-3" />
-                Conversa privada
+                Conversa entre participantes · sujeita à revisão da organização
               </p>
             </div>
           </header>

@@ -21,6 +21,7 @@ const tabs = [
   { to: "/admin/participantes", label: "Usuários" },
   { to: "/admin/configuracoes", label: "Configurações" },
   { to: "/admin/auditoria", label: "Auditoria" },
+  { to: "/admin/conversas", label: "Conversas privadas" },
 ] as {
   to:
     | "/admin"
@@ -29,7 +30,8 @@ const tabs = [
     | "/admin/desafios"
     | "/admin/participantes"
     | "/admin/configuracoes"
-    | "/admin/auditoria";
+    | "/admin/auditoria"
+    | "/admin/conversas";
   label: string;
   exact?: boolean;
 }[];
