@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,10 +13,7 @@ import { SparkCelebration } from "@/components/SparkCelebration";
 import bgAsset from "@/assets/montanhas.jpg.asset.json";
 import logoAsset from "@/assets/logo-cristo.png.asset.json";
 
-const searchSchema = z.object({
-  mode: z.enum(["login", "signup"]).optional(),
-  challenge: z.string().uuid().optional().catch(undefined),
-});
+const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
@@ -74,20 +71,9 @@ function AppleIcon() {
 }
 
 function AuthPage() {
-  const { mode, challenge } = Route.useSearch();
+  const { mode } = Route.useSearch();
   const { session } = useSession();
   const navigate = useNavigate();
-  const finishLogin = useCallback(
-    () =>
-      challenge
-        ? navigate({ to: "/desafio/$id", params: { id: challenge }, replace: true })
-        : navigate({ to: "/dashboard", replace: true }),
-    [challenge, navigate],
-  );
-  const returnUrl = () =>
-    challenge
-      ? new URL(`/auth?challenge=${challenge}`, window.location.origin).href
-      : window.location.origin;
   const [tab, setTab] = useState(mode === "signup" ? "signup" : "login");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -113,7 +99,7 @@ function AuthPage() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: verificationEmail,
-        options: { emailRedirectTo: returnUrl() },
+        options: { emailRedirectTo: window.location.origin },
       });
       if (error) throw error;
       setVerificationMessage("Novo e-mail solicitado. Confira também o spam e o lixo eletrônico.");
@@ -129,8 +115,8 @@ function AuthPage() {
   }
 
   useEffect(() => {
-    if (session && !celebrating) finishLogin();
-  }, [session, finishLogin, celebrating]);
+    if (session && !celebrating) navigate({ to: "/dashboard", replace: true });
+  }, [session, navigate, celebrating]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -149,7 +135,7 @@ function AuthPage() {
       } else toast.error("Não foi possível entrar. Verifique e-mail e senha.");
       return;
     }
-    finishLogin();
+    navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -172,7 +158,7 @@ function AuthPage() {
     const { data, error } = await supabase.auth.signUp({
       email: parsedEmail.data,
       password,
-      options: { emailRedirectTo: returnUrl(), data: { name: name.trim() } },
+      options: { emailRedirectTo: window.location.origin, data: { name: name.trim() } },
     });
     setLoading(false);
     if (error) {
@@ -190,31 +176,31 @@ function AuthPage() {
       return;
     }
     setCelebrating(true);
-    window.setTimeout(() => finishLogin(), 2200);
+    window.setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2200);
   }
 
   async function handleGoogle() {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: returnUrl(),
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       toast.error("Não foi possível entrar com o Google.");
       return;
     }
     if (result.redirected) return;
-    finishLogin();
+    navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleApple() {
     const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: returnUrl(),
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       toast.error("Não foi possível entrar com a Apple.");
       return;
     }
     if (result.redirected) return;
-    finishLogin();
+    navigate({ to: "/dashboard", replace: true });
   }
 
   async function handleRecover() {

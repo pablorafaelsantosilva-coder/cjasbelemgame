@@ -1,213 +1,115 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { LockKeyhole, ArrowLeft } from "lucide-react";
-import { reviewPrivateChats, type AdminChatRow } from "@/lib/admin-chat.functions";
-import { useIsAdmin, useSession } from "@/hooks/useAuth";
+import { useEffect, useRef, useState } from "react";
+import { LockKeyhole, ShieldCheck, RefreshCw } from "lucide-react";
+import { reviewPrivateMessages } from "@/lib/admin-chat.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/admin/conversas")({
-  head: () => ({
-    meta: [
-      { title: "Consulta de conversas — Organização" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
-  component: AdminConversations,
+  head: () => ({ meta: [
+    { title: "Revisão de conversas — CJAS Belém Game" },
+    { name: "description", content: "Consulta protegida de conversas pela organização do CJAS Belém Game." },
+    { property: "og:title", content: "Revisão de conversas — CJAS Belém Game" },
+    { property: "og:description", content: "Área restrita de revisão de conversas da organização." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "robots", content: "noindex, nofollow" },
+  ] }),
+  component: ConversationReview,
 });
-function AdminConversations() {
-  const { userId } = useSession();
-  const { data: admin } = useIsAdmin(userId);
-  const read = useServerFn(reviewPrivateChats);
-  const [pin, setPin] = useState("");
-  const [reason, setReason] = useState("");
-  const [unlocked, setUnlocked] = useState(false);
+
+type Result = Awaited<ReturnType<typeof reviewPrivateMessages>>;
+
+function ConversationReview() {
+  const review = useServerFn(reviewPrivateMessages);
+  const password = useRef("");
+  const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [items, setItems] = useState<AdminChatRow[]>([]);
-  const [pair, setPair] = useState<{ a: string; b: string; title: string } | undefined>();
-  const [more, setMore] = useState(false);
-  const sequence = useRef(0);
-  const credentials = useRef({ pin: "", reason: "" });
+  const [search, setSearch] = useState("");
+  const [participant, setParticipant] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; password.current = ""; };
+  }, []);
   function lock() {
-    sequence.current++;
-    credentials.current = { pin: "", reason: "" };
-    setPin("");
-    setReason("");
-    setUnlocked(false);
-    setItems([]);
-    setPair(undefined);
-    setBusy(false);
+    password.current = "";
+    setResult(null);
     setError("");
-    setMore(false);
+    setSearch("");
+    setParticipant(null);
   }
   useEffect(() => {
-    lock();
-  }, [userId]);
-  useEffect(() => {
-    if (!unlocked) return;
-    const timer = setTimeout(lock, 5 * 60_000);
-    const onHidden = () => {
-      if (document.hidden) lock();
-    };
-    document.addEventListener("visibilitychange", onHidden);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onHidden);
-    };
-  }, [unlocked]);
-  async function load(nextPair?: typeof pair, older = false) {
-    const request = ++sequence.current;
+    if (!result) return;
+    const timer = setTimeout(lock, 10 * 60_000);
+    return () => clearTimeout(timer);
+  }, [result]);
+
+  async function load(before: Result["next"] = null, person: string | null = participant) {
     setBusy(true);
     setError("");
-    const last = older ? items.at(-1) : undefined;
-    if (!older) setItems([]);
     try {
-      const rows = await read({
-        data: {
-          ...credentials.current,
-          ...(nextPair ? { pair: { a: nextPair.a, b: nextPair.b } } : {}),
-          ...(last ? { cursor: { at: last.created_at, id: last.id } } : {}),
-        },
-      });
-      if (request !== sequence.current) return;
-      setItems((old) =>
-        older ? [...new Map([...old, ...rows].map((row) => [row.id, row])).values()] : rows,
-      );
-      setPair(nextPair);
-      setMore(rows.length === 50);
-      setUnlocked(true);
-      setPin("");
-    } catch (cause) {
-      if (request !== sequence.current) return;
-      lock();
-      setError(cause instanceof Error ? cause.message : "Não foi possível consultar.");
-    } finally {
-      if (request === sequence.current) setBusy(false);
-    }
+      const page = await review({ data: { password: password.current, participant: person, before } });
+      if (!alive.current) return;
+      setResult((old) => before && old ? {
+        ...page,
+        messages: [...old.messages, ...page.messages],
+        names: [...new Map([...old.names, ...page.names].map((p) => [p.id, p])).values()],
+      } : page);
+    } catch (e) {
+      if (!alive.current) return;
+      password.current = "";
+      setResult(null);
+      setError(e instanceof Error ? e.message : "Não foi possível abrir as conversas.");
+    } finally { if (alive.current) setBusy(false); }
   }
-  if (!admin) return <p>Acesso restrito à organização.</p>;
-  return (
-    <section className="space-y-4 rounded-2xl border bg-card p-5">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
-        <LockKeyhole className="size-5" />
-        Consulta de conversas privadas
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        Os administradores podem ter acesso às conversas privadas em casos de violação das regras.
-        Toda consulta exige justificativa e fica registrada na auditoria.
-      </p>
-      {error && (
-        <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      {!unlocked ? (
-        <form
-          className="max-w-lg space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            credentials.current = { pin, reason };
-            void load();
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="review-reason">Motivo da consulta</Label>
-            <Textarea
-              id="review-reason"
-              required
-              minLength={10}
-              maxLength={500}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Informe a violação relatada e o motivo da verificação."
-            />
+  const names = new Map(result?.names.map((p) => [p.id, p.name]));
+  const filtered = result?.messages.filter((m) => !search ||
+    `${names.get(m.sender_id) ?? ""} ${names.get(m.recipient_id) ?? ""} ${m.body}`
+      .toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"))) ?? [];
+
+  return <section className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 text-xl font-bold"><ShieldCheck className="size-5 text-primary" />Conversas privadas</h2>
+      {result && <div className="flex gap-2">
+        <Button variant="outline" disabled={busy} onClick={() => void load()}><RefreshCw />Atualizar</Button>
+        <Button variant="secondary" disabled={busy} onClick={lock}><LockKeyhole />Bloquear</Button>
+      </div>}
+    </div>
+    <p className="text-sm text-muted-foreground">Acesso exclusivo da administração, somente para leitura. Cada consulta fica registrada na auditoria.</p>
+    {!result ? <form className="max-w-sm space-y-3 py-6" onSubmit={(e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      password.current = String(new FormData(form).get("password") ?? "");
+      form.reset();
+      void load();
+    }}>
+      <Label htmlFor="conversation-password">Senha de acesso</Label>
+      <Input id="conversation-password" name="password" type="password" autoComplete="off" maxLength={128} required disabled={busy} />
+      <Button type="submit" disabled={busy}><LockKeyhole />{busy ? "Verificando…" : "Abrir conversas"}</Button>
+    </form> : <>
+      <Input aria-label="Buscar nas mensagens carregadas" placeholder="Buscar nas mensagens carregadas…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {participant && <Button disabled={busy} variant="outline" onClick={() => { setParticipant(null); void load(null, null); }}>Todos os participantes</Button>}
+      <div aria-live="polite" className="divide-y divide-border">
+        {filtered.map((m) => <article key={m.id} className="space-y-2 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-1">
+              <Button disabled={busy} variant="link" className="h-auto whitespace-normal p-0 text-left" onClick={() => { setParticipant(m.sender_id); void load(null, m.sender_id); }}>{names.get(m.sender_id) ?? "Participante"}</Button>
+              <span className="text-muted-foreground">→</span>
+              <Button disabled={busy} variant="link" className="h-auto whitespace-normal p-0 text-left" onClick={() => { setParticipant(m.recipient_id); void load(null, m.recipient_id); }}>{names.get(m.recipient_id) ?? "Participante"}</Button>
+            </div>
+            <time className="text-xs text-muted-foreground" dateTime={m.created_at}>{new Date(m.created_at).toLocaleString("pt-BR")}</time>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="review-pin">Senha adicional</Label>
-            <Input
-              id="review-pin"
-              type="password"
-              autoComplete="off"
-              required
-              minLength={4}
-              maxLength={128}
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-            />
-          </div>
-          <Button disabled={busy || reason.trim().length < 10 || pin.length < 4} type="submit">
-            {busy ? "Verificando…" : "Acessar conversas"}
-          </Button>
-        </form>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            {pair && (
-              <Button disabled={busy} variant="outline" onClick={() => load()}>
-                <ArrowLeft className="mr-2 size-4" />
-                Todas as conversas
-              </Button>
-            )}
-            <Button variant="outline" onClick={lock}>
-              Bloquear acesso
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Bloqueio automático após 5 minutos ou ao ocultar a aba. Acesso somente para leitura.
-          </p>
-          {pair && <h3 className="font-semibold">{pair.title}</h3>}
-          {busy && <p role="status">Carregando…</p>}
-          {!busy && items.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma mensagem encontrada.</p>
-          )}
-          <div className="space-y-2">
-            {items.map((item) =>
-              pair ? (
-                <article key={item.id} className="rounded-xl border p-3">
-                  <p className="text-xs font-semibold">
-                    {item.sender_name} → {item.recipient_name}
-                  </p>
-                  <p className="my-2 whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
-                    {item.body}
-                  </p>
-                  <time className="text-xs text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString("pt-BR")}
-                  </time>
-                </article>
-              ) : (
-                <button
-                  key={item.id}
-                  disabled={busy}
-                  className="block w-full rounded-xl border p-4 text-left hover:bg-secondary"
-                  onClick={() =>
-                    load({
-                      a: item.sender_id,
-                      b: item.recipient_id,
-                      title: `${item.sender_name} e ${item.recipient_name}`,
-                    })
-                  }
-                >
-                  <span className="block font-medium">
-                    {item.sender_name} e {item.recipient_name}
-                  </span>
-                  <time className="text-xs text-muted-foreground">
-                    Última mensagem: {new Date(item.created_at).toLocaleString("pt-BR")}
-                  </time>
-                </button>
-              ),
-            )}
-          </div>
-          {more && (
-            <Button disabled={busy} variant="outline" onClick={() => load(pair, true)}>
-              Carregar anteriores
-            </Button>
-          )}
-        </>
-      )}
-    </section>
-  );
+          {m.reply_to_id && <p className="text-xs text-muted-foreground">Resposta a uma mensagem</p>}
+          <p className="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{m.body}</p>
+        </article>)}
+        {!filtered.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem encontrada.</p>}
+      </div>
+      {result.next && <Button variant="outline" disabled={busy} onClick={() => void load(result.next)}>{busy ? "Carregando…" : "Mensagens anteriores"}</Button>}
+    </>}
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+  </section>;
 }

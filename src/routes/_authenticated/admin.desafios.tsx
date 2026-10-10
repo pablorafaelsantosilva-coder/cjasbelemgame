@@ -58,8 +58,6 @@ const emptyForm = () => ({
   description: "",
   instructions: "",
   points: 100,
-  first_photo_bonus: 10,
-  share_photos_in_chat: false,
   type: "normal" as "normal" | "relampago",
   starts_at: toLocalInput(new Date()),
   ends_at: toLocalInput(new Date(Date.now() + 3 * 3600_000)),
@@ -81,8 +79,6 @@ function AdminChallenges() {
     setEditingId(c.id);
     setForm({
       ...c,
-      first_photo_bonus: c.first_photo_bonus ?? 0,
-      share_photos_in_chat: c.share_photos_in_chat ?? false,
       audience: c.audience ?? "",
       extra_rules: c.extra_rules ?? "",
       starts_at: toLocalInput(new Date(c.starts_at)),
@@ -116,19 +112,11 @@ function AdminChallenges() {
         throw new Error("Informe datas válidas.");
       if (new Date(form.ends_at) <= new Date(form.starts_at))
         throw new Error("O encerramento deve ser depois do início.");
-      if (
-        !Number.isSafeInteger(form.first_photo_bonus) ||
-        form.first_photo_bonus < 0 ||
-        form.first_photo_bonus > 10000
-      )
-        throw new Error("Informe um bônus inteiro entre 0 e 10.000 pontos.");
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
         instructions: form.instructions.trim(),
         points: Number(form.points) || 0,
-        first_photo_bonus: form.first_photo_bonus,
-        share_photos_in_chat: form.share_photos_in_chat,
         type: form.type,
         starts_at: new Date(form.starts_at).toISOString(),
         ends_at: new Date(form.ends_at).toISOString(),
@@ -292,44 +280,11 @@ function AdminChallenges() {
               />
             </div>
             <div>
-              <Label htmlFor="first-photo-bonus">Bônus pela primeira foto válida</Label>
-              <Input
-                id="first-photo-bonus"
-                type="number"
-                min={0}
-                max={10000}
-                step={1}
-                value={form.first_photo_bonus}
-                onChange={(e) => setForm({ ...form, first_photo_bonus: Number(e.target.value) })}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 desativa. A primeira foto enviada ganha o bônus após aprovação. Envios anteriores
-                em análise precisam ser avaliados antes de definir o vencedor. Um bônus por desafio.
-              </p>
-            </div>
-            <div className="space-y-2">
               <Label>Regras extras (opcional)</Label>
               <Input
                 value={form.extra_rules}
                 onChange={(e) => setForm({ ...form, extra_rules: e.target.value })}
               />
-            </div>
-            <div className="rounded-xl border bg-secondary/30 p-4 sm:col-span-2">
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="challenge-chat-photos"
-                  checked={form.share_photos_in_chat}
-                  onCheckedChange={(value) => setForm({ ...form, share_photos_in_chat: value })}
-                />
-                <Label htmlFor="challenge-chat-photos">
-                  Mostrar fotos deste desafio no chat geral
-                </Label>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                As fotos aparecem automaticamente após a aprovação, quando o participante autorizar
-                o compartilhamento. Desligar retira as fotos deste desafio do chat. Vídeos continuam
-                privados.
-              </p>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Switch

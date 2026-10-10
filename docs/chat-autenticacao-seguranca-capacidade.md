@@ -71,7 +71,7 @@ Senhas ficam apenas no formulário até o envio ao provedor e não são gravadas
 
 ## Privacidade e integridade verificadas
 
-A leitura direta das mensagens continua restrita ao remetente e destinatário. A aba administrativa acrescenta uma exceção para casos de violação das regras, com login de administrador, senha adicional e motivo auditado. Operadores com acesso privilegiado ao banco continuam tendo acesso técnico. Não há criptografia de ponta a ponta.
+Mensagens privadas só são selecionáveis pelo remetente e destinatário. O papel de administrador do aplicativo não concede leitura de conversas alheias; operadores com acesso privilegiado ao banco continuam tendo acesso técnico. Não há criptografia de ponta a ponta.
 
 O banco bloqueia remetente falsificado, conversa consigo mesmo, participantes inativos, corpo vazio/excessivo, respostas de outra conversa, alteração/exclusão pelo cliente e envio repetido em menos de um segundo. O diretório retorna nome, identificador e avatar, sem e-mail. Respostas do chat geral guardam referência, sem copiar permanentemente o texto de uma mensagem ocultada.
 
@@ -103,71 +103,3 @@ Referências oficiais:
 Os testes `tests/chat-permissions.mjs` e `tests/proof-security.mjs` usam PostgreSQL isolado via PGlite. Instalar `@electric-sql/pglite` em um diretório temporário e apontar `PGLITE_MODULE` para seu `dist/index.js`; executar cada arquivo com Node. Eles cobrem 16 cenários de chat e 8 cenários de comprovações, sem acessar dados de participantes reais.
 
 `tests/chat-auth-ui.cjs` usa Playwright, um servidor local em `TEST_URL` (padrão `http://127.0.0.1:5173`) e respostas de Supabase simuladas. Informar `PLAYWRIGHT_MODULE` e `CHROMIUM_PATH` se não estiverem disponíveis normalmente. O teste não envia e-mails reais nem cria contas. As credenciais de teste são fictícias. Entrega real de e-mail, Realtime em produção e limites do serviço precisam de verificação após a ativação.
-
-## Consulta administrativa por violação das regras
-
-A aba **Painel → Conversas privadas** exige papel de administrador, senha adicional e justificativa de 10 a 500 caracteres. Consulta somente para leitura, paginada em 50 itens; o PIN e o texto das mensagens não são copiados para a auditoria. A interface bloqueia após cinco minutos ou ao ocultar a aba. O servidor verifica papel e senha em cada chamada POST e marca a resposta como não armazenável. Cinco tentativas incorretas bloqueiam o administrador por 15 minutos, persistidas no banco. Não há nova política de leitura irrestrita para administradores na tabela original.
-
-Ativação: aplicar **drizzle/migrations/0004_admin_private_chat_review.sql** pelo fluxo de migrações do projeto, configurar o segredo de servidor **ADMIN_CHAT_PIN** com o valor informado pelo proprietário e publicar. Não usar variável com prefixo VITE nem inserir a senha no código, documentação ou GitHub. O segredo não foi configurado remotamente por esta alteração: sem ele a área permanece bloqueada. A migração depende do chat privado já criado.
-
-O aviso aos participantes aparece em texto de 10 px, abaixo do cabeçalho: “Os administradores podem ter acesso às conversas privadas em casos de violação das regras.” A justificativa é declarada pelo administrador, não há verificação automática de que ocorreu uma violação; a auditoria permite revisar o uso.
-
-`tests/admin-chat-permissions.mjs` verifica isolamento da função privilegiada, bloqueio persistente, justificativa e auditoria em PostgreSQL isolado. `tests/admin-chat-ui.cjs` verifica acesso de participante/administrador e falha fechada com respostas simuladas, sem usuários ou consultas reais.
-
-## Desafios: lembretes, links e primeira foto
-
-Aplicar, em ordem, `drizzle/migrations/0005_challenge_reminders.sql` e
-`drizzle/migrations/0006_first_photo_bonus.sql` pelo fluxo de migrações do projeto.
-Não reaplicar os SQLs manualmente se o journal já os executou. As migrações foram
-validadas em banco de teste; sua aplicação no ambiente Lovable depende do deploy.
-
-- Os desafios abertos aparecem antes dos programados e encerrados, com borda,
-  selo **Aberto agora** e os prazos mais próximos primeiro. O encerramento do evento
-  remove o destaque de aberto. Nenhum prazo foi estendido.
-- **Compartilhar desafio** abre o compartilhamento nativo quando disponível; usa
-  cópia do link como alternativa e exibe um campo selecionável se a cópia falhar.
-  Compartilha somente a rota do desafio, sem credenciais ou arquivos privados.
-  O acesso continua autenticado e o login preserva o UUID do desafio de destino.
-  Para confirmação de e-mail/OAuth, a lista de redirects permitidos deve incluir
-  a rota `/auth` do domínio publicado, inclusive seu parâmetro `challenge`.
-- **Lembrar-me** salva a preferência por conta no banco. Desafios futuros geram
-  aviso quando abrem; os já abertos, nos últimos dez minutos. A consulta do sino,
-  a cada minuto enquanto o site está ativo e ao retornar ao site, entrega o aviso
-  uma única vez. O usuário precisa abrir o site antes do encerramento. Não é push,
-  cron, e-mail nem garantia de aviso com o navegador fechado. A data atual do
-  desafio é consultada na entrega, respeitando remarcação/cancelamento/fechamento.
-  RLS protege a leitura e RPCs derivam a identidade de `auth.uid()`; não recebem
-  um usuário de destino informado pelo cliente. `FOR UPDATE SKIP LOCKED` impede
-  entrega duplicada entre abas. Falta de migração mantém o sino antigo e apresenta
-  indisponibilidade no botão, sem fingir que salvou o lembrete.
-- **Bônus pela primeira foto válida**: valor inteiro editável de 0 a 10.000 no painel
-  de desafios; 0 desativa. Novos desafios sugerem +10; existentes permanecem com 0
-  até decisão da organização, para não alterar silenciosamente regras anunciadas.
-  A ordem usa o recebimento do arquivo no servidor, não o relógio do participante
-  nem a ordem de aprovação. Uma submissão vazia não reserva a primeira colocação.
-  Em reenvios vale o horário do novo envio, quando posterior à foto. Empates usam
-  o UUID da submissão como desempate determinístico. Fotos anteriores pendentes
-  precisam ser avaliadas: se aprovadas, ganham; se rejeitadas, liberam o próximo
-  envio válido. O bônus é único por desafio, registrado em transação de pontos,
-  notificação e auditoria. Pontos normais continuam dependendo de aprovação manual
-  e de todas as comprovações exigidas. Alterar o valor após concedido não recalcula
-  o bônus já pago; correções seguem o ajuste de pontos administrativo.
-
-Validação: `tests/challenge-features.mjs` aplica as migrações e verifica RLS,
-entrega única, cancelamento, encerramento, ordem de aprovação invertida, rejeição,
-reserva vazia, relógio adulterado e bloqueio de aprovação sem arquivos. Executar
-com `PGLITE_MODULE` apontando para uma instalação de `@electric-sql/pglite`.
-
-### Opção de fotos no chat por desafio
-
-A migração `0007_challenge_chat_photos.sql` adiciona `share_photos_in_chat`.
-O painel de criação/edição oferece **Mostrar fotos deste desafio no chat geral**,
-inicialmente desligado nos novos desafios. Desafios existentes preservam a
-permissão anterior, que já exigia autorização individual e aprovação. O participante
-vê a opção de autorizar suas fotos somente se o desafio permitir. A política de
-inserção rejeita autorizações quando a opção está desligada. A RPC de leitura
-exige simultaneamente opção ligada, autorização do autor, aprovação e ausência de
-ocultação pela organização; retorna somente imagens, sem vídeos. Desligar impede
-novas leituras pelo chat. Fotos já carregadas podem permanecer na tela até a
-atualização e URLs assinadas anteriormente continuam válidas por até dez minutos.
-Os arquivos de comprovação permanecem em armazenamento privado.

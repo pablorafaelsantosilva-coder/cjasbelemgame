@@ -1,4 +1,3 @@
-import { ChallengeActions } from "@/components/ChallengeActions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -123,11 +122,7 @@ function ChallengeDetail() {
     },
   });
 
-  const state = settings?.finished
-    ? "encerrado"
-    : challenge
-      ? liveState(challenge, new Date(now))
-      : "agendado";
+  const state = challenge ? liveState(challenge, new Date(now)) : "agendado";
   const status = submissionLabel(submission?.status);
   const canSubmit =
     !!challenge &&
@@ -215,7 +210,7 @@ function ChallengeDetail() {
           .eq("user_id", userId);
         if (consentError) throw consentError;
       }
-      if (challenge.share_photos_in_chat && shareInChat && subId) {
+      if (shareInChat && subId) {
         const { error: consentError } = await supabase
           .from("submission_chat_shares")
           .insert({ submission_id: subId, user_id: userId });
@@ -231,7 +226,7 @@ function ChallengeDetail() {
     },
     onSuccess: () => {
       toast.success(
-        challenge?.share_photos_in_chat && shareInChat
+        shareInChat
           ? "Envio recebido! Se aprovado, aparecerá no chat geral."
           : "Envio recebido! Aguarde a validação da organização.",
       );
@@ -294,7 +289,6 @@ function ChallengeDetail() {
           </span>
         </div>
         <h1 className="text-2xl font-bold">{challenge.title}</h1>
-        <ChallengeActions challenge={challenge} finished={settings?.finished ?? true} />
         <p className="text-sm text-primary-foreground/80">{challenge.description}</p>
         <p className="text-sm">
           <span className="font-semibold">+{challenge.points} pontos</span> ·{" "}
@@ -383,31 +377,25 @@ function ChallengeDetail() {
                 ))}
               </ul>
             )}
-            {challenge.share_photos_in_chat ? (
-              <div className="flex items-center gap-3 border-t border-border pt-3">
-                <Switch
-                  id="share-proof-in-chat"
-                  checked={shareInChat}
-                  onCheckedChange={setShareInChat}
-                  disabled={upload.isPending}
-                  aria-label="Autorizar fotos no chat geral após aprovação"
-                />
-                <label
-                  htmlFor="share-proof-in-chat"
-                  className="min-w-0 cursor-pointer text-sm font-medium"
-                >
-                  Autorizar minhas fotos no chat geral?
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    Opcional. As fotos aparecem após a aprovação da organização. Vídeos continuam
-                    privados.
-                  </span>
-                </label>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                As comprovações deste desafio ficam privadas para avaliação da organização.
-              </p>
-            )}
+            <div className="flex items-center gap-3 border-t border-border pt-3">
+              <Switch
+                id="share-proof-in-chat"
+                checked={shareInChat}
+                onCheckedChange={setShareInChat}
+                disabled={upload.isPending}
+                aria-label="Mostrar foto ou vídeo no chat geral após aprovação"
+              />
+              <label
+                htmlFor="share-proof-in-chat"
+                className="min-w-0 cursor-pointer text-sm font-medium"
+              >
+                Mostrar para todos no chat geral?
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Opcional. Só aparece após a organização aprovar. Desligado mantém sua mídia
+                  privada.
+                </span>
+              </label>
+            </div>
             <Button
               className="w-full"
               disabled={upload.isPending || files.length === 0}

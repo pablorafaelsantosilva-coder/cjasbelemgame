@@ -14,3 +14,4 @@
 - Keep organizer media browsing behind the admin route and existing row/storage policies; private proofs must never become publicly readable.
 - Keep the group chat in its own authenticated route with database-enforced author validation and admin-only hiding; this prevents forged messages and unauthorized moderation.
 - Share challenge proofs in chat only after explicit participant opt-in and organizer approval; use a filtered database read and short-lived access instead of making the private proofs bucket public.
+- Review direct messages only through an authenticated server function that verifies the admin role and server-held password on every request, rate-limits failures and audits reads; never widen participant RLS or persist the unlock in browser storage.

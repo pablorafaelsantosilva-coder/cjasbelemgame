@@ -20,8 +20,8 @@ const tabs = [
   { to: "/admin/desafios", label: "Desafios" },
   { to: "/admin/participantes", label: "Usuários" },
   { to: "/admin/configuracoes", label: "Configurações" },
-  { to: "/admin/conversas", label: "Conversas privadas" },
   { to: "/admin/auditoria", label: "Auditoria" },
+  { to: "/admin/conversas", label: "Conversas privadas" },
 ] as {
   to:
     | "/admin"

@@ -4,15 +4,9 @@ import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      const match =
-        /^\/desafio\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i.exec(
-          location.pathname,
-        );
-      throw redirect({ to: "/auth", search: { challenge: match?.[1] } });
-    }
+    if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };
   },
   component: () => (

@@ -123,16 +123,10 @@ function Dashboard() {
     if (!byChallenge.has(s.challenge_id)) byChallenge.set(s.challenge_id, s);
 
   const visible = challenges.filter((c) => liveState(c, new Date(now)) !== "rascunho");
-  const active = settings?.finished
-    ? []
-    : visible
-        .filter((c) => liveState(c, new Date(now)) === "ativo")
-        .sort((a, b) => Date.parse(a.ends_at) - Date.parse(b.ends_at));
-  const upcoming = settings?.finished
-    ? []
-    : visible.filter((c) => liveState(c, new Date(now)) === "agendado");
-  const closed = visible.filter(
-    (c) => settings?.finished || ["encerrado", "cancelado"].includes(liveState(c, new Date(now))),
+  const active = visible.filter((c) => liveState(c, new Date(now)) === "ativo");
+  const upcoming = visible.filter((c) => liveState(c, new Date(now)) === "agendado");
+  const closed = visible.filter((c) =>
+    ["encerrado", "cancelado"].includes(liveState(c, new Date(now))),
   );
 
   const confirmedCount = visible.filter(
@@ -320,17 +314,11 @@ function Dashboard() {
         ))}
       </div>
       <Section
-        title={`Abertos agora · ${active.filter(matches).length}`}
+        title="Desafios ativos"
         empty={loadingChallenges ? "Carregando…" : "Nenhum desafio ativo neste filtro."}
       >
         {active.filter(matches).map((c) => (
-          <ChallengeCard
-            key={c.id}
-            challenge={c}
-            submission={byChallenge.get(c.id)}
-            now={now}
-            finished={!!settings?.finished}
-          />
+          <ChallengeCard key={c.id} challenge={c} submission={byChallenge.get(c.id)} now={now} />
         ))}
       </Section>
 
@@ -339,13 +327,7 @@ function Dashboard() {
         empty={loadingChallenges ? "Carregando…" : "Nenhum desafio programado neste filtro."}
       >
         {upcoming.filter(matches).map((c) => (
-          <ChallengeCard
-            key={c.id}
-            challenge={c}
-            submission={byChallenge.get(c.id)}
-            now={now}
-            finished={!!settings?.finished}
-          />
+          <ChallengeCard key={c.id} challenge={c} submission={byChallenge.get(c.id)} now={now} />
         ))}
       </Section>
 
@@ -354,13 +336,7 @@ function Dashboard() {
         empty={loadingChallenges ? "Carregando…" : "Nenhum desafio encerrado neste filtro."}
       >
         {closed.filter(matches).map((c) => (
-          <ChallengeCard
-            key={c.id}
-            challenge={c}
-            submission={byChallenge.get(c.id)}
-            now={now}
-            finished={!!settings?.finished}
-          />
+          <ChallengeCard key={c.id} challenge={c} submission={byChallenge.get(c.id)} now={now} />
         ))}
       </Section>
     </div>
@@ -394,23 +370,16 @@ function ChallengeCard({
   challenge,
   submission,
   now,
-  finished,
 }: {
   challenge: Challenge;
   submission?: Submission | undefined;
   now: number;
-  finished: boolean;
 }) {
-  const state = finished ? "encerrado" : liveState(challenge, new Date(now));
+  const state = liveState(challenge, new Date(now));
   const status = submissionLabel(submission?.status);
   return (
     <Link to="/desafio/$id" params={{ id: challenge.id }} className="block">
-      <Card
-        className={cn(
-          "hover-lift press-in",
-          state === "ativo" && "border-2 border-success/60 bg-success/5 shadow-lg",
-        )}
-      >
+      <Card className="hover-lift press-in">
         <CardContent className="flex items-center gap-3 p-4">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -434,11 +403,6 @@ function ChallengeCard({
               </span>
             </div>
             <p className="line-clamp-2 font-semibold">{challenge.title}</p>
-            {(challenge.first_photo_bonus ?? 0) > 0 && (
-              <p className="text-xs font-semibold text-primary">
-                🏆 +{challenge.first_photo_bonus} pts pela primeira foto válida
-              </p>
-            )}
             <p
               className={cn(
                 "flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground",

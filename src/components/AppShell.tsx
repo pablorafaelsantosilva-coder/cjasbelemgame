@@ -45,22 +45,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     enabled: !!userId,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("deliver_my_challenge_reminders");
-      if (!error && data && typeof data === "object" && !Array.isArray(data)) {
-        if (typeof data["delivered"] === "number" && data["delivered"] > 0) {
-          void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
-          void queryClient.invalidateQueries({ queryKey: ["challenge-reminder", userId] });
-          toast.info("Você tem um lembrete de desafio!", {
-            action: {
-              label: "Ver",
-              onClick: () => {
-                void navigate({ to: "/notificacoes" });
-              },
-            },
-          });
-        }
-        if (typeof data["unread"] === "number") return data["unread"];
-      }
       const { count } = await supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })

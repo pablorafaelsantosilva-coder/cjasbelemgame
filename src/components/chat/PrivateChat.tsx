@@ -272,6 +272,7 @@ export function PrivateChat({
               Adicionar pessoas
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Conversas entre participantes. Administradores autorizados podem revisar as mensagens para moderação.</p>
           {newConversation && (
             <Button
               variant="ghost"
@@ -439,14 +440,10 @@ export function PrivateChat({
               <h2 className="truncate font-semibold">{peer.name}</h2>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <LockKeyhole className="size-3" />
-                Conversa privada
+                Conversa entre participantes · sujeita à revisão da organização
               </p>
             </div>
           </header>
-          <p className="shrink-0 border-b bg-secondary/40 px-3 py-1.5 text-[10px] text-muted-foreground">
-            Os administradores podem ter acesso às conversas privadas em casos de violação das
-            regras.
-          </p>
           <ChatSearch
             key={peer.id}
             live={live}
@@ -502,7 +499,7 @@ export function PrivateChat({
                 <div className="grid min-h-full place-content-center gap-2 text-center text-sm text-muted-foreground">
                   <LockKeyhole className="mx-auto size-8 text-primary/50" />
                   <p>Diga um oi para {peer.name.split(" ")[0]}.</p>
-                  <p className="text-xs">Envie uma mensagem para começar a conversa.</p>
+                  <p className="text-xs">As mensagens ficam entre vocês no aplicativo.</p>
                 </div>
               )}
               {messages.map((m, index) => {

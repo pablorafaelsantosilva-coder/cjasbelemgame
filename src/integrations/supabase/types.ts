@@ -14,13 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      challenge_reminders: {
-        Row: { user_id: string; challenge_id: string; kind: string; delivered_at: string | null }
-        Insert: { user_id: string; challenge_id: string; kind: string; delivered_at?: string | null }
-        Update: { delivered_at?: string | null }
-        Relationships: []
-      }
-
       audit_logs: {
         Row: {
           action: string
@@ -63,8 +56,6 @@ export type Database = {
           id: string
           instructions: string
           max_participants: number | null
-          share_photos_in_chat: boolean
-          first_photo_bonus: number
           points: number
           requires_photo: boolean
           requires_video: boolean
@@ -85,8 +76,6 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
-          first_photo_bonus?: number
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
@@ -107,8 +96,6 @@ export type Database = {
           id?: string
           instructions?: string
           max_participants?: number | null
-          share_photos_in_chat?: boolean
-          first_photo_bonus?: number
           points?: number
           requires_photo?: boolean
           requires_video?: boolean
@@ -237,7 +224,6 @@ export type Database = {
       }
       notifications: {
         Row: {
-          challenge_id: string | null
           created_at: string
           id: string
           message: string
@@ -247,7 +233,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          challenge_id?: string | null
           created_at?: string
           id?: string
           message?: string
@@ -257,7 +242,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          challenge_id?: string | null
           created_at?: string
           id?: string
           message?: string
@@ -373,7 +357,6 @@ export type Database = {
       }
       submission_files: {
         Row: {
-          received_at: string | null
           created_at: string
           file_size: number
           file_type: string
@@ -383,7 +366,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          received_at?: string | null
           created_at?: string
           file_size?: number
           file_type: string
@@ -393,7 +375,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          received_at?: string | null
           created_at?: string
           file_size?: number
           file_type?: string
@@ -485,13 +466,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      set_challenge_reminder: { Args: { _challenge: string; _enabled: boolean }; Returns: undefined }
-      deliver_my_challenge_reminders: { Args: Record<PropertyKey, never>; Returns: Json }
-
-      review_private_chats: {
-        Args: { _admin: string; _pin_valid: boolean; _a?: string; _b?: string; _before?: string; _before_id?: string; _reason?: string };
-        Returns: Json;
-      };
       adjust_points: {
         Args: { _description: string; _points: number; _user_id: string }
         Returns: undefined

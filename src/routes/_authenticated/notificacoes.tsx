@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +11,7 @@ export const Route = createFileRoute("/_authenticated/notificacoes")({
   head: () => ({
     meta: [
       { title: "Notificações — CJAS Belém Game" },
-      {
-        name: "description",
-        content: "Avisos sobre validações, novos desafios e mensagens da organização.",
-      },
+      { name: "description", content: "Avisos sobre validações, novos desafios e mensagens da organização." },
       { property: "og:title", content: "Notificações — CJAS Belém Game" },
       { property: "og:description", content: "Avisos sobre validações e novos desafios." },
       { property: "og:type", content: "website" },
@@ -57,9 +54,7 @@ function NotificationsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Notificações</h1>
-      {items.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhuma notificação por enquanto.</p>
-      )}
+      {items.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma notificação por enquanto.</p>}
       <div className="space-y-2">
         {items.map((n) => (
           <Card key={n.id} className={cn(!n.read && "border-primary/40 bg-primary/5")}>
@@ -67,15 +62,6 @@ function NotificationsPage() {
               <p className="font-medium">{n.title}</p>
               <p className="text-sm text-muted-foreground">{n.message}</p>
               <p className="text-xs text-muted-foreground">{formatDateTime(n.created_at)}</p>
-              {n.challenge_id && (
-                <Link
-                  to="/desafio/$id"
-                  params={{ id: n.challenge_id }}
-                  className="inline-block py-2 text-sm font-semibold text-primary underline"
-                >
-                  Ver desafio
-                </Link>
-              )}
             </CardContent>
           </Card>
         ))}
