@@ -151,6 +151,65 @@ export type Database = {
           },
         ]
       }
+      costume_entries: {
+        Row: {
+          costume_name: string
+          created_at: string
+          description: string
+          first_name: string
+          id: string
+          last_name: string
+          photo_path: string
+          user_id: string
+        }
+        Insert: {
+          costume_name: string
+          created_at?: string
+          description?: string
+          first_name: string
+          id?: string
+          last_name: string
+          photo_path: string
+          user_id: string
+        }
+        Update: {
+          costume_name?: string
+          created_at?: string
+          description?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          photo_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      costume_votes: {
+        Row: {
+          created_at: string
+          entry_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costume_votes_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "costume_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           body: string
@@ -496,6 +555,13 @@ export type Database = {
           file_paths: string[]
           file_types: string[]
           submission_id: string
+        }[]
+      }
+      get_costume_results: {
+        Args: never
+        Returns: {
+          entry_id: string
+          votes: number
         }[]
       }
       get_direct_inbox: {
