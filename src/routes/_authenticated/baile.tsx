@@ -166,11 +166,15 @@ function CostumeBallPage() {
         )
       )}
 
-      <QueryFeedback
-        isLoading={entriesQ.isLoading}
-        isError={entriesQ.isError}
-        onRetry={() => void entriesQ.refetch()}
-      />
+      {entriesQ.isLoading && (
+        <Loader2 className="mx-auto size-6 animate-spin text-primary" aria-label="Carregando" />
+      )}
+      {entriesQ.isError && (
+        <QueryFeedback
+          message="Não foi possível carregar as inscrições."
+          onRetry={() => void entriesQ.refetch()}
+        />
+      )}
 
       {rows.length === 0 && !entriesQ.isLoading && (
         <p className="text-center text-sm text-muted-foreground">
