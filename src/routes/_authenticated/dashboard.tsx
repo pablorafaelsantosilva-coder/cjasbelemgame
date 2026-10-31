@@ -222,6 +222,19 @@ function Dashboard() {
           </span>
           <ChevronRight className="ml-auto size-4 shrink-0" />
         </Link>
+        <Link
+          to="/baile"
+          className="col-span-2 flex items-center gap-3 rounded-2xl border border-primary/40 bg-card p-4 shadow-soft hover-lift"
+        >
+          <span className="text-xl" aria-hidden>🎭</span>
+          <span className="text-sm font-semibold">
+            Baile à fantasia
+            <span className="block text-xs font-normal text-muted-foreground">
+              Inscreva-se no desfile e vote na melhor fantasia
+            </span>
+          </span>
+          <ChevronRight className="ml-auto size-4 shrink-0" />
+        </Link>
       </div>
       {challengesError || submissionsError ? (
         <QueryFeedback
