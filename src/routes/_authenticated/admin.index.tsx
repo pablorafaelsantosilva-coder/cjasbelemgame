@@ -86,6 +86,19 @@ function AdminHome() {
           </Card>
         ))}
       </div>
+      <Card className="border-primary/40 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold">Controle do Baile à fantasia</p>
+            <p className="text-sm text-muted-foreground">
+              Encerre as inscrições e libere a votação dos participantes nas configurações.
+            </p>
+          </div>
+          <Button asChild>
+            <Link to="/admin/configuracoes">Configurar Baile</Link>
+          </Button>
+        </CardContent>
+      </Card>
       <ChatReadiness />
       <div className="flex flex-wrap gap-2">
         <Button asChild>
