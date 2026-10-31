@@ -57,6 +57,13 @@
       "when": 1791608471078,
       "tag": "0007_ensure_profile_bio_access",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793482438613,
+      "tag": "0008_costume_ball",
+      "breakpoints": true
     }
   ]
 }
