@@ -48,6 +48,17 @@ function CostumeBallPage() {
   const { data: isAdmin } = useIsAdmin(userId);
   const qc = useQueryClient();
 
+  const { data: eventSettings } = useQuery({
+    queryKey: ["event-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("event_settings").select("costume_registration_closed").eq("id", 1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 15_000,
+  });
+  const registrationClosed = eventSettings?.costume_registration_closed === true;
+
   const entriesQ = useQuery({
     queryKey: ["costume-entries"],
     refetchInterval: 30_000,
@@ -156,7 +167,7 @@ function CostumeBallPage() {
         </div>
       </section>
 
-      {!mine && !entriesQ.isLoading && (
+      {!registrationClosed && !mine && !entriesQ.isLoading && (
         full ? (
           <p className="rounded-2xl border bg-card p-4 text-sm text-muted-foreground">
             As {LIMIT} vagas do concurso já foram preenchidas. Você ainda pode votar!
@@ -176,13 +187,28 @@ function CostumeBallPage() {
         />
       )}
 
+      {!registrationClosed && !entriesQ.isLoading && (
+        <p className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center text-sm font-medium">
+          As inscrições estão abertas. A votação será liberada assim que a organização encerrar as inscrições.
+        </p>
+      )}
+
+      {registrationClosed && (
+        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <h2 className="text-lg font-bold">🗳️ Votação aberta!</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolha sua fantasia favorita. Cada participante tem um voto e pode alterá-lo até o encerramento da votação.
+          </p>
+        </section>
+      )}
+
       {rows.length === 0 && !entriesQ.isLoading && (
         <p className="text-center text-sm text-muted-foreground">
           Ninguém se inscreveu ainda. Seja o primeiro!
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {registrationClosed && <div className="grid gap-4 sm:grid-cols-2">
         {rows.map((r, i) => {
           const votes = results[r.id] ?? 0;
           const leading = votes > 0 && votes === maxVotes;
@@ -234,7 +260,7 @@ function CostumeBallPage() {
                         <Trash2 className="size-4" />
                       </Button>
                     )}
-                    {!own && (
+                    {registrationClosed && !own && (
                       <Button
                         size="sm"
                         variant={voted ? "default" : "outline"}
@@ -251,7 +277,7 @@ function CostumeBallPage() {
             </article>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }
