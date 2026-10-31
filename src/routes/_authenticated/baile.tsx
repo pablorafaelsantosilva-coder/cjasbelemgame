@@ -293,7 +293,7 @@ function EntryForm({ userId, onDone }: { userId: string; onDone: () => void }) {
     mutationFn: async () => {
       if (!file) throw new Error("Escolha uma foto fantasiado.");
       if (!file.type.startsWith("image/")) throw new Error("O arquivo precisa ser uma foto.");
-      if (file.size > 10 * 1024 * 1024) throw new Error("A foto deve ter até 10 MB.");
+      if (file.size > 100 * 1024 * 1024) throw new Error("A foto deve ter até 100 MB.");
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${userId}/${crypto.randomUUID()}.${ext}`;
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
