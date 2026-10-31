@@ -48,6 +48,7 @@ function AdminSettings() {
     org_message: "",
     finished: false,
     max_file_mb: 100,
+    costume_registration_closed: false,
   });
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -75,6 +76,7 @@ function AdminSettings() {
       org_message: data.org_message,
       finished: data.finished,
       max_file_mb: data.max_file_mb,
+      costume_registration_closed: data.costume_registration_closed,
     });
   }, [data]);
 
@@ -94,6 +96,7 @@ function AdminSettings() {
         org_message: form.org_message,
         finished: form.finished,
         max_file_mb: form.max_file_mb,
+        costume_registration_closed: form.costume_registration_closed,
       })
       .eq("id", 1);
     setSaving(false);
@@ -170,6 +173,18 @@ function AdminSettings() {
               value={form.org_message}
               onChange={(e) => setForm({ ...form, org_message: e.target.value })}
             />
+          </div>
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:col-span-2">
+            <label className="flex items-center gap-3 text-sm font-semibold">
+              <Switch
+                checked={form.costume_registration_closed}
+                onCheckedChange={(v) => setForm({ ...form, costume_registration_closed: v })}
+              />
+              Encerrar inscrições do Baile e liberar a votação
+            </label>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Ao ativar e salvar, os participantes deixam de poder se inscrever e o painel de votação é liberado automaticamente.
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <Switch
