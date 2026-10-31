@@ -248,6 +248,7 @@ export type Database = {
       event_settings: {
         Row: {
           end_date: string
+          costume_registration_closed: boolean
           finished: boolean
           id: number
           logo_url: string | null
@@ -260,6 +261,7 @@ export type Database = {
         }
         Insert: {
           end_date?: string
+          costume_registration_closed?: boolean
           finished?: boolean
           id?: number
           logo_url?: string | null
@@ -272,6 +274,7 @@ export type Database = {
         }
         Update: {
           end_date?: string
+          costume_registration_closed?: boolean
           finished?: boolean
           id?: number
           logo_url?: string | null
