@@ -64,6 +64,13 @@
       "when": 1793482438613,
       "tag": "0008_costume_ball",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793494214688,
+      "tag": "0009_costume_voting_phase",
+      "breakpoints": true
     }
   ]
 }
